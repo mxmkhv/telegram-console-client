@@ -1,0 +1,41 @@
+{
+  "name": "telegram-console-client",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A terminal-based Telegram client",
+  "bin": {
+    "telegram-console-client": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "bun run src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target node",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@types/bun": "latest",
+    "@types/node": "^25.0.9",
+    "@types/react": "^19.2.8",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1"
+  },
+  "dependencies": {
+    "conf": "^15.0.2",
+    "ink": "^6.6.0",
+    "ink-text-input": "^6.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "react": "^19.2.3",
+    "telegram": "^2.26.22"
+  }
+}
