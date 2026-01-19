@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-import { render, Text } from "ink";
+import { render } from "ink";
+import { App } from "./app";
 
-function App() {
-  return <Text>telegram-console-client</Text>;
-}
+const useMock = process.argv.includes("--mock");
 
-render(<App />);
+render(<App useMock={useMock} />);
