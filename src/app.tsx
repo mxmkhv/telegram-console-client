@@ -131,7 +131,8 @@ export function App({ useMock = false }: AppProps) {
   useEffect(() => {
     if (hasConfig()) {
       const loadedConfig = loadConfigWithEnvOverrides();
-      if (loadedConfig) {
+      // Validate config has valid credentials before skipping setup
+      if (loadedConfig && loadedConfig.apiId && loadedConfig.apiHash) {
         setConfig(loadedConfig);
         setIsSetupComplete(true);
       }
@@ -143,18 +144,52 @@ export function App({ useMock = false }: AppProps) {
       if (useMock) {
         setTelegramService(createMockTelegramService());
       } else {
+        // Try to load existing session
+        let session = "";
+        try {
+          const { readFileSync, existsSync } = require("fs");
+          const { join } = require("path");
+          const { homedir } = require("os");
+          const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
+          if (existsSync(sessionPath)) {
+            session = readFileSync(sessionPath, "utf-8");
+          }
+        } catch {
+          // Ignore errors reading session
+        }
+
         setTelegramService(
           createTelegramService({
             apiId: config.apiId,
             apiHash: config.apiHash,
+            session,
+            onSessionUpdate: (newSession) => {
+              try {
+                const { writeFileSync } = require("fs");
+                const { join } = require("path");
+                const { homedir } = require("os");
+                const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
+                writeFileSync(sessionPath, newSession);
+              } catch {
+                // Ignore errors saving session
+              }
+            },
           })
         );
       }
     }
   }, [isSetupComplete, config, useMock]);
 
-  const handleSetupComplete = useCallback((newConfig: AppConfig, _session: string) => {
+  const handleSetupComplete = useCallback((newConfig: AppConfig, session: string) => {
     saveConfig(newConfig);
+    // Save session string to config directory
+    if (session) {
+      const { writeFileSync } = require("fs");
+      const { join } = require("path");
+      const { homedir } = require("os");
+      const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
+      writeFileSync(sessionPath, session);
+    }
     setConfig(newConfig);
     setIsSetupComplete(true);
   }, []);

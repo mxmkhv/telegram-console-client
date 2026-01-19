@@ -1,5 +1,6 @@
-import { TelegramClient, Api } from "telegram";
+import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
+import { NewMessage, NewMessageEvent } from "telegram/events";
 import type { TelegramService, ConnectionState, Message } from "../types";
 
 export interface TelegramServiceOptions {
@@ -11,9 +12,9 @@ export interface TelegramServiceOptions {
 
 export function createTelegramService(options: TelegramServiceOptions): TelegramService & { client: TelegramClient } {
   const { apiId, apiHash, session = "", onSessionUpdate } = options;
-  const numericApiId = typeof apiId === "string" ? parseInt(apiId, 10) : apiId;
   const stringSession = new StringSession(session);
-  const client = new TelegramClient(stringSession, numericApiId, apiHash, {
+  // @ts-expect-error - GramJS accepts string or number for apiId
+  const client = new TelegramClient(stringSession, apiId, apiHash, {
     connectionRetries: 5,
   });
 
@@ -35,21 +36,22 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
       setConnectionState("connected");
       onSessionUpdate?.(client.session.save() as unknown as string);
 
-      client.addEventHandler((event: Api.TypeUpdate) => {
-        if (event instanceof Api.UpdateNewMessage && event.message instanceof Api.Message) {
+      client.addEventHandler(
+        (event: NewMessageEvent) => {
           const msg = event.message;
-          const chatId = msg.peerId?.toString() ?? "";
+          const chatId = msg.chatId?.toString() ?? "";
           const message: Message = {
             id: msg.id,
-            senderId: msg.fromId?.toString() ?? "",
+            senderId: msg.senderId?.toString() ?? "",
             senderName: "",
-            text: msg.message ?? "",
+            text: msg.text ?? "",
             timestamp: new Date(msg.date * 1000),
             isOutgoing: msg.out ?? false,
           };
           _messageCallback?.(message, chatId);
-        }
-      });
+        },
+        new NewMessage({})
+      );
     },
 
     async disconnect() {

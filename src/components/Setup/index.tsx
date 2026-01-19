@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from "react";
-import { Box } from "ink";
+import React, { useState, useCallback, useRef } from "react";
+import { Box, Text } from "ink";
+import TextInput from "ink-text-input";
+import { TelegramClient } from "telegram";
+import { StringSession } from "telegram/sessions";
+import qrcode from "qrcode-terminal";
 import { Welcome } from "./Welcome";
 import { ApiCredentials } from "./ApiCredentials";
-import { QrAuth } from "./QrAuth";
-import { PhoneAuth } from "./PhoneAuth";
 import type { AppConfig, AuthMethod } from "../../types";
 
-type SetupStep = "welcome" | "credentials" | "auth";
+type SetupStep = "welcome" | "credentials" | "auth" | "password";
 
 interface SetupProps {
   onComplete: (config: AppConfig, session: string) => void;
@@ -15,63 +17,102 @@ interface SetupProps {
 
 export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
   const [step, setStep] = useState<SetupStep>("welcome");
-  const [authMethod, setAuthMethod] = useState<AuthMethod>(preferredAuthMethod);
-  const [apiId, setApiId] = useState<number | string | null>(null);
-  const [apiHash, setApiHash] = useState<string | null>(null);
-  const [phoneStep, setPhoneStep] = useState<"phone" | "code" | "2fa">("phone");
-  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [apiId, setApiId] = useState<string>("");
+  const [apiHash, setApiHash] = useState<string>("");
+  const [qrDisplay, setQrDisplay] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>();
+  void isLoading; // Used for loading state
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [passwordHint, setPasswordHint] = useState<string>("");
 
-  // Suppress unused variable warnings - these will be used when integrating with real auth
-  void setQrCode;
-  void setPhoneStep;
-  void setError;
+  const clientRef = useRef<TelegramClient | null>(null);
+  const passwordResolveRef = useRef<((password: string) => void) | null>(null);
+
+  // Suppress unused variable warning
+  void preferredAuthMethod;
 
   const handleWelcomeContinue = useCallback(() => {
     setStep("credentials");
   }, []);
 
-  const handleCredentialsSubmit = useCallback((id: number | string, hash: string) => {
+  const handleCredentialsSubmit = useCallback(async (id: string, hash: string) => {
     setApiId(id);
     setApiHash(hash);
     setStep("auth");
-    // In mock mode, immediately complete setup
-    const config: AppConfig = {
-      apiId: id,
-      apiHash: hash,
-      sessionPersistence: "persistent",
-      logLevel: "info",
-      authMethod: "qr",
-    };
-    onComplete(config, "");
+    setIsLoading(true);
+    setStatus("Connecting to Telegram...");
+    setError(null);
+
+    try {
+      const stringSession = new StringSession("");
+      const numericId = parseInt(id, 10);
+      const client = new TelegramClient(stringSession, numericId, hash, {
+        connectionRetries: 5,
+      });
+      clientRef.current = client;
+
+      await client.connect();
+      setStatus("Waiting for QR code scan...");
+
+      await client.signInUserWithQrCode(
+        { apiId: numericId, apiHash: hash },
+        {
+          onError: async (err: Error) => {
+            setError(err.message);
+            return false; // Continue trying
+          },
+          qrCode: async (code) => {
+            const loginUrl = `tg://login?token=${code.token.toString("base64url")}`;
+            qrcode.generate(loginUrl, { small: true }, (output) => {
+              setQrDisplay(output);
+            });
+          },
+          password: async (hint) => {
+            setPasswordHint(hint || "");
+            setStep("password");
+            setStatus("2FA password required");
+
+            // Wait for password input
+            return new Promise<string>((resolve) => {
+              passwordResolveRef.current = resolve;
+            });
+          },
+        }
+      );
+
+      setIsLoading(false);
+      setStatus("Logged in successfully!");
+
+      const sessionString = client.session.save() as unknown as string;
+      const config: AppConfig = {
+        apiId: id,
+        apiHash: hash,
+        sessionPersistence: "persistent",
+        logLevel: "info",
+        authMethod: "qr",
+      };
+
+      // Small delay to show success message
+      setTimeout(() => {
+        onComplete(config, sessionString);
+      }, 500);
+
+    } catch (err) {
+      setIsLoading(false);
+      setError(err instanceof Error ? err.message : "Authentication failed");
+    }
   }, [onComplete]);
 
-  const handleSwitchToPhone = useCallback(() => {
-    setAuthMethod("phone");
+  const handlePasswordSubmit = useCallback((value: string) => {
+    if (passwordResolveRef.current) {
+      passwordResolveRef.current(value);
+      passwordResolveRef.current = null;
+      setStep("auth");
+      setStatus("Verifying password...");
+    }
   }, []);
-
-  const handlePhoneSubmit = useCallback((_phone: string) => {
-    setIsLoading(true);
-    // Here we would send the phone to Telegram
-    setIsLoading(false);
-  }, []);
-
-  const handleCodeSubmit = useCallback((_code: string) => {
-    setIsLoading(true);
-    // Here we would verify the code
-    setIsLoading(false);
-  }, []);
-
-  const handle2FASubmit = useCallback((_password: string) => {
-    setIsLoading(true);
-    // Here we would verify 2FA
-    setIsLoading(false);
-  }, []);
-
-  // Suppress unused variable warnings for credentials
-  void apiId;
-  void apiHash;
 
   return (
     <Box flexDirection="column">
@@ -81,23 +122,47 @@ export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
         <ApiCredentials onSubmit={handleCredentialsSubmit} />
       )}
 
-      {step === "auth" && authMethod === "qr" && (
-        <QrAuth
-          qrCode={qrCode}
-          onSwitchToPhone={handleSwitchToPhone}
-          isLoading={isLoading}
-        />
+      {step === "auth" && (
+        <Box flexDirection="column" padding={1}>
+          <Text bold color="cyan">Scan QR Code</Text>
+          <Text></Text>
+          <Text>Open Telegram on your phone:</Text>
+          <Text>Settings → Devices → Scan QR Code</Text>
+          <Text></Text>
+
+          {qrDisplay ? (
+            <Box flexDirection="column">
+              <Text>{qrDisplay}</Text>
+            </Box>
+          ) : (
+            <Text dimColor>Generating QR code...</Text>
+          )}
+
+          <Text></Text>
+          {status && <Text color="blue">{status}</Text>}
+          {error && <Text color="red">Error: {error}</Text>}
+        </Box>
       )}
 
-      {step === "auth" && authMethod === "phone" && (
-        <PhoneAuth
-          onSubmitPhone={handlePhoneSubmit}
-          onSubmitCode={handleCodeSubmit}
-          onSubmit2FA={handle2FASubmit}
-          step={phoneStep}
-          isLoading={isLoading}
-          error={error}
-        />
+      {step === "password" && (
+        <Box flexDirection="column" padding={1}>
+          <Text bold color="cyan">Two-Factor Authentication</Text>
+          <Text></Text>
+          {passwordHint && <Text>Hint: {passwordHint}</Text>}
+          <Text></Text>
+          <Box>
+            <Text bold>Password: </Text>
+            <TextInput
+              value={password}
+              onChange={setPassword}
+              onSubmit={handlePasswordSubmit}
+              mask="*"
+              focus={true}
+            />
+          </Box>
+          <Text></Text>
+          {error && <Text color="red">Error: {error}</Text>}
+        </Box>
       )}
     </Box>
   );
