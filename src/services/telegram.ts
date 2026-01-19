@@ -37,13 +37,17 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
       onSessionUpdate?.(client.session.save() as unknown as string);
 
       client.addEventHandler(
-        (event: NewMessageEvent) => {
+        async (event: NewMessageEvent) => {
           const msg = event.message;
           const chatId = msg.chatId?.toString() ?? "";
+          const sender = await msg.getSender() as { firstName?: string; lastName?: string; title?: string; username?: string } | undefined;
+          const senderName = sender?.firstName
+            ? `${sender.firstName}${sender.lastName ? ` ${sender.lastName}` : ""}`
+            : sender?.title ?? sender?.username ?? "Unknown";
           const message: Message = {
             id: msg.id,
             senderId: msg.senderId?.toString() ?? "",
-            senderName: "",
+            senderName,
             text: msg.text ?? "",
             timestamp: new Date(msg.date * 1000),
             isOutgoing: msg.out ?? false,
@@ -77,14 +81,21 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
 
     async getMessages(chatId: string, limit = 50) {
       const messages = await client.getMessages(chatId, { limit });
-      return messages.map((m) => ({
-        id: m.id,
-        senderId: m.fromId?.toString() ?? "",
-        senderName: "",
-        text: m.message ?? "",
-        timestamp: new Date(m.date * 1000),
-        isOutgoing: m.out ?? false,
-      }));
+      // Reverse to get chronological order (oldest first)
+      return messages.map((m) => {
+        const sender = m.sender as { firstName?: string; lastName?: string; title?: string; username?: string } | undefined;
+        const senderName = sender?.firstName
+          ? `${sender.firstName}${sender.lastName ? ` ${sender.lastName}` : ""}`
+          : sender?.title ?? sender?.username ?? "Unknown";
+        return {
+          id: m.id,
+          senderId: m.fromId?.toString() ?? "",
+          senderName,
+          text: m.message ?? "",
+          timestamp: new Date(m.date * 1000),
+          isOutgoing: m.out ?? false,
+        };
+      }).reverse();
     },
 
     async sendMessage(chatId: string, text: string) {

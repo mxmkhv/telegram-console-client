@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Box, useInput, useApp as useInkApp } from "ink";
 import { AppProvider, useApp } from "./state/context";
 import { ChatList } from "./components/ChatList";
@@ -53,6 +53,7 @@ function MainApp({ telegramService }: MainAppProps) {
   const handleSelectChat = useCallback(
     (chatId: string) => {
       dispatch({ type: "SELECT_CHAT", payload: chatId });
+      dispatch({ type: "SET_FOCUSED_PANEL", payload: "input" });
     },
     [dispatch]
   );
@@ -70,51 +71,102 @@ function MainApp({ telegramService }: MainAppProps) {
     [state.selectedChatId, telegramService, dispatch]
   );
 
-  useInput((input, key) => {
-    if (key.ctrl && input === "c") {
-      exit();
-      return;
-    }
+  // Panel navigation and global keys (disabled when input is focused to not interfere with TextInput)
+  useInput(
+    (input, key) => {
+      // Ctrl+C always exits
+      if (key.ctrl && input === "c") {
+        exit();
+        return;
+      }
 
-    if (state.focusedPanel === "chatList") {
-      if (key.upArrow) {
-        setChatIndex((i) => Math.max(0, i - 1));
-      } else if (key.downArrow) {
-        setChatIndex((i) => Math.min(state.chats.length - 1, i + 1));
-      } else if (key.return) {
-        const chat = state.chats[chatIndex];
-        if (chat) handleSelectChat(chat.id);
-      } else if (key.rightArrow || key.tab) {
-        dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
+      // Tab cycles panels
+      if (key.tab) {
+        if (state.focusedPanel === "chatList") {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
+        } else if (state.focusedPanel === "messages") {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "input" });
+        } else if (state.focusedPanel === "input") {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        }
+        return;
       }
-    } else if (state.focusedPanel === "messages") {
-      if (key.leftArrow) {
-        dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
-      } else if (key.tab) {
-        dispatch({ type: "SET_FOCUSED_PANEL", payload: "input" });
-      }
-    } else if (state.focusedPanel === "input") {
+
+      // Escape goes to chatList
       if (key.escape) {
-        dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
+        dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        return;
       }
-    }
-  });
+
+      // Panel-specific navigation
+      if (state.focusedPanel === "chatList") {
+        if (key.upArrow) {
+          setChatIndex((i) => Math.max(0, i - 1));
+        } else if (key.downArrow) {
+          setChatIndex((i) => Math.min(state.chats.length - 1, i + 1));
+        } else if (key.return) {
+          const chat = state.chats[chatIndex];
+          if (chat) handleSelectChat(chat.id);
+        } else if (key.rightArrow) {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
+        }
+      } else if (state.focusedPanel === "messages") {
+        if (key.leftArrow) {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        } else if (key.return) {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "input" });
+        }
+      }
+    },
+    { isActive: state.focusedPanel !== "input" }
+  );
+
+  // Escape to exit input mode (only active when input is focused)
+  useInput(
+    (_input, key) => {
+      if (key.escape) {
+        dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+      }
+    },
+    { isActive: state.focusedPanel === "input" }
+  );
+
+  // Memoize derived data for child components
+  const selectedChat = useMemo(
+    () => state.chats.find((c) => c.id === state.selectedChatId),
+    [state.chats, state.selectedChatId]
+  );
+
+  const currentMessages = useMemo(
+    () => (state.selectedChatId ? state.messages[state.selectedChatId] ?? [] : []),
+    [state.messages, state.selectedChatId]
+  );
 
   return (
     <Box flexDirection="column" height="100%">
       <Box flexGrow={1}>
         <ChatList
+          chats={state.chats}
+          selectedChatId={state.selectedChatId}
           onSelectChat={handleSelectChat}
           selectedIndex={chatIndex}
           isFocused={state.focusedPanel === "chatList"}
         />
-        <MessageView isFocused={state.focusedPanel === "messages"} />
+        <MessageView
+          isFocused={state.focusedPanel === "messages"}
+          selectedChatTitle={selectedChat?.title ?? null}
+          messages={currentMessages}
+        />
       </Box>
       <InputBar
         isFocused={state.focusedPanel === "input"}
         onSubmit={handleSendMessage}
+        selectedChatId={state.selectedChatId}
       />
-      <StatusBar />
+      <StatusBar
+        connectionState={state.connectionState}
+        focusedPanel={state.focusedPanel}
+      />
     </Box>
   );
 }

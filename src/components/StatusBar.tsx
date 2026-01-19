@@ -1,7 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import { Box, Text } from "ink";
-import { useAppState } from "../state/context";
-import type { ConnectionState } from "../types";
+import type { ConnectionState, FocusedPanel } from "../types";
+
+interface StatusBarProps {
+  connectionState: ConnectionState;
+  focusedPanel: FocusedPanel;
+}
 
 function getStatusColor(state: ConnectionState): string {
   switch (state) {
@@ -25,16 +29,30 @@ function getStatusText(state: ConnectionState): string {
   }
 }
 
-export function StatusBar() {
-  const { connectionState } = useAppState();
+function StatusBarInner({ connectionState, focusedPanel }: StatusBarProps) {
+  const getHints = () => {
+    switch (focusedPanel) {
+      case "chatList":
+        return "[↑↓: Navigate] [Enter: Open] [Tab: Next] [Esc: Back]";
+      case "messages":
+        return "[←: Chats] [Enter: Type] [Tab: Next] [Esc: Back]";
+      case "input":
+        return "[Enter: Send] [Tab: Next] [Esc: Back to Chats]";
+      default:
+        return "";
+    }
+  };
 
   return (
-    <Box borderStyle="single" paddingX={1}>
+    <Box borderStyle="single" paddingX={1} justifyContent="space-between">
       <Text>
-        [Status: <Text color={getStatusColor(connectionState)}>{getStatusText(connectionState)}</Text>]
+        [<Text color={getStatusColor(connectionState)}>{getStatusText(connectionState)}</Text>]
+        {" "}
+        <Text bold color="cyan">{focusedPanel.toUpperCase()}</Text>
       </Text>
-      <Text> </Text>
-      <Text dimColor>[↑↓: Navigate] [Enter: Select] [Tab: Input] [Ctrl+C: Exit]</Text>
+      <Text dimColor>{getHints()}</Text>
     </Box>
   );
 }
+
+export const StatusBar = memo(StatusBarInner);

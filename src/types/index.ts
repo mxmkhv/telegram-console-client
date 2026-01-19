@@ -11,6 +11,7 @@ export interface AppConfig {
 }
 
 export type ConnectionState = "disconnected" | "connecting" | "connected";
+export type FocusedPanel = "chatList" | "messages" | "input";
 
 export interface Chat {
   id: string;

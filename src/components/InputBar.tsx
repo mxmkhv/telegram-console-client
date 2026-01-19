@@ -1,42 +1,46 @@
-import React from "react";
+import React, { useState, useCallback, useEffect, memo } from "react";
 import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
-import { useAppState, useAppDispatch } from "../state/context";
 
 interface InputBarProps {
   isFocused: boolean;
   onSubmit: (text: string) => void;
+  selectedChatId: string | null;
 }
 
-export function InputBar({ isFocused, onSubmit }: InputBarProps) {
-  const { inputText, selectedChatId } = useAppState();
-  const dispatch = useAppDispatch();
+function InputBarInner({ isFocused, onSubmit, selectedChatId }: InputBarProps) {
+  const [inputText, setInputText] = useState("");
 
-  const handleChange = (value: string) => {
-    dispatch({ type: "SET_INPUT_TEXT", payload: value });
-  };
+  // Clear input when chat changes
+  useEffect(() => {
+    setInputText("");
+  }, [selectedChatId]);
 
-  const handleSubmit = (value: string) => {
+  const handleSubmit = useCallback((value: string) => {
     if (value.trim() && selectedChatId) {
       onSubmit(value.trim());
-      dispatch({ type: "SET_INPUT_TEXT", payload: "" });
+      setInputText("");
     }
-  };
+  }, [selectedChatId, onSubmit]);
 
   return (
-    <Box borderStyle="single" paddingX={1}>
-      <Text bold color={isFocused ? "cyan" : undefined}>{">"} </Text>
-      {isFocused ? (
+    <Box
+      borderStyle="single"
+      borderColor={isFocused ? "cyan" : undefined}
+      paddingX={1}
+    >
+      <Text bold color={isFocused ? "cyan" : "white"}>{">"} </Text>
+      <Box flexGrow={1}>
         <TextInput
           value={inputText}
-          onChange={handleChange}
+          onChange={setInputText}
           onSubmit={handleSubmit}
           placeholder={selectedChatId ? "Type a message..." : "Select a chat first"}
           focus={isFocused}
         />
-      ) : (
-        <Text dimColor>{inputText || "Type a message..."}</Text>
-      )}
+      </Box>
     </Box>
   );
 }
+
+export const InputBar = memo(InputBarInner);

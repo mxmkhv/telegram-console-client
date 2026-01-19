@@ -737,7 +737,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chats: action.payload };
 
     case "SELECT_CHAT":
-      return { ...state, selectedChatId: action.payload, focusedPanel: "messages" };
+      return { ...state, selectedChatId: action.payload, focusedPanel: "input" };
 
     case "SET_MESSAGES":
       return {

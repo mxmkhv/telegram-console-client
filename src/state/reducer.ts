@@ -1,4 +1,4 @@
-import type { Chat, Message, ConnectionState } from "../types";
+import type { Chat, Message, ConnectionState, FocusedPanel } from "../types";
 
 export interface AppState {
   connectionState: ConnectionState;
@@ -6,7 +6,7 @@ export interface AppState {
   selectedChatId: string | null;
   messages: Record<string, Message[]>;
   inputText: string;
-  focusedPanel: "chatList" | "messages" | "input";
+  focusedPanel: FocusedPanel;
 }
 
 export type AppAction =

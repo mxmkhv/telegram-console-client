@@ -1,9 +1,11 @@
-import React from "react";
+import React, { memo } from "react";
 import { Box, Text } from "ink";
-import { useAppState } from "../state/context";
+import type { Message } from "../types";
 
 interface MessageViewProps {
   isFocused: boolean;
+  selectedChatTitle: string | null;
+  messages: Message[];
 }
 
 function formatTime(date: Date): string {
@@ -14,25 +16,21 @@ function formatTime(date: Date): string {
   });
 }
 
-export function MessageView({ isFocused: _isFocused }: MessageViewProps) {
-  const { selectedChatId, messages, chats } = useAppState();
-  const selectedChat = chats.find((c) => c.id === selectedChatId);
-  const chatMessages = selectedChatId ? messages[selectedChatId] ?? [] : [];
-
-  if (!selectedChatId) {
+function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages }: MessageViewProps) {
+  if (!selectedChatTitle) {
     return (
-      <Box flexDirection="column" borderStyle="single" flexGrow={1} justifyContent="center" alignItems="center">
+      <Box flexDirection="column" borderStyle="single" borderColor={isFocused ? "cyan" : undefined} flexGrow={1} justifyContent="center" alignItems="center">
         <Text dimColor>Select a chat to start</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" borderStyle="single" flexGrow={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor={isFocused ? "cyan" : undefined} flexGrow={1}>
       <Box paddingX={1} borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false}>
-        <Text bold>Chat: {selectedChat?.title ?? "Unknown"}</Text>
+        <Text bold color={isFocused ? "cyan" : undefined}>Chat: {selectedChatTitle}</Text>
       </Box>
-      <Box flexDirection="column" paddingX={1} flexGrow={1}>
+      <Box flexDirection="column" paddingX={1} flexGrow={1} justifyContent="flex-end" overflow="hidden">
         {chatMessages.map((msg) => (
           <Box key={msg.id}>
             <Text dimColor>[{formatTime(msg.timestamp)}] </Text>
@@ -46,3 +44,5 @@ export function MessageView({ isFocused: _isFocused }: MessageViewProps) {
     </Box>
   );
 }
+
+export const MessageView = memo(MessageViewInner);
