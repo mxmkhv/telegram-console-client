@@ -42,6 +42,7 @@ export function ApiCredentials({ onSubmit }: ApiCredentialsProps) {
             onChange={setApiId}
             onSubmit={handleApiIdSubmit}
             placeholder="12345678"
+            focus={step === "apiId"}
           />
         ) : (
           <Text>{apiId}</Text>
@@ -57,6 +58,7 @@ export function ApiCredentials({ onSubmit }: ApiCredentialsProps) {
             onSubmit={handleApiHashSubmit}
             placeholder="Enter your API hash"
             mask="*"
+            focus={step === "apiHash"}
           />
         </Box>
       )}

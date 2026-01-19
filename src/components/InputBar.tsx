@@ -32,6 +32,7 @@ export function InputBar({ isFocused, onSubmit }: InputBarProps) {
           onChange={handleChange}
           onSubmit={handleSubmit}
           placeholder={selectedChatId ? "Type a message..." : "Select a chat first"}
+          focus={isFocused}
         />
       ) : (
         <Text dimColor>{inputText || "Type a message..."}</Text>

@@ -23,21 +23,21 @@ export function PhoneAuth({
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
 
-  const handlePhoneSubmit = () => {
-    if (phone.trim()) {
-      onSubmitPhone(phone.trim());
+  const handlePhoneSubmit = (value: string) => {
+    if (value.trim()) {
+      onSubmitPhone(value.trim());
     }
   };
 
-  const handleCodeSubmit = () => {
-    if (code.trim()) {
-      onSubmitCode(code.trim());
+  const handleCodeSubmit = (value: string) => {
+    if (value.trim()) {
+      onSubmitCode(value.trim());
     }
   };
 
-  const handle2FASubmit = () => {
-    if (password) {
-      onSubmit2FA(password);
+  const handle2FASubmit = (value: string) => {
+    if (value) {
+      onSubmit2FA(value);
     }
   };
 
@@ -64,6 +64,7 @@ export function PhoneAuth({
               onChange={setPhone}
               onSubmit={handlePhoneSubmit}
               placeholder="+1234567890"
+              focus={step === "phone"}
             />
           )}
         </Box>
@@ -80,6 +81,7 @@ export function PhoneAuth({
               onChange={setCode}
               onSubmit={handleCodeSubmit}
               placeholder="12345"
+              focus={step === "code"}
             />
           )}
         </Box>
@@ -96,6 +98,7 @@ export function PhoneAuth({
               onChange={setPassword}
               onSubmit={handle2FASubmit}
               mask="*"
+              focus={step === "2fa"}
             />
           )}
         </Box>
