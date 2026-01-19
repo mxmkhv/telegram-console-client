@@ -9,3 +9,33 @@ export interface AppConfig {
   logLevel: LogLevel;
   authMethod: AuthMethod;
 }
+
+export type ConnectionState = "disconnected" | "connecting" | "connected";
+
+export interface Chat {
+  id: string;
+  title: string;
+  unreadCount: number;
+  lastMessage?: Message;
+  isGroup: boolean;
+}
+
+export interface Message {
+  id: number;
+  senderId: string;
+  senderName: string;
+  text: string;
+  timestamp: Date;
+  isOutgoing: boolean;
+}
+
+export interface TelegramService {
+  connect(): Promise<void>;
+  disconnect(): Promise<void>;
+  getConnectionState(): ConnectionState;
+  getChats(): Promise<Chat[]>;
+  getMessages(chatId: string, limit?: number): Promise<Message[]>;
+  sendMessage(chatId: string, text: string): Promise<Message>;
+  onConnectionStateChange(callback: (state: ConnectionState) => void): void;
+  onNewMessage(callback: (message: Message, chatId: string) => void): void;
+}
