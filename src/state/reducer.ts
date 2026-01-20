@@ -1,4 +1,4 @@
-import type { Chat, Message, ConnectionState, FocusedPanel } from "../types";
+import type { Chat, Message, ConnectionState, FocusedPanel, CurrentView } from "../types";
 
 export interface AppState {
   connectionState: ConnectionState;
@@ -8,6 +8,9 @@ export interface AppState {
   focusedPanel: FocusedPanel;
   loadingOlderMessages: Record<string, boolean>;
   hasMoreMessages: Record<string, boolean>;
+  currentView: CurrentView;
+  showLogoutPrompt: boolean;
+  headerSelectedButton: "settings" | "logout";
 }
 
 export type AppAction =
@@ -20,7 +23,11 @@ export type AppAction =
   | { type: "SET_FOCUSED_PANEL"; payload: AppState["focusedPanel"] }
   | { type: "UPDATE_UNREAD_COUNT"; payload: { chatId: string; count: number } }
   | { type: "SET_LOADING_OLDER_MESSAGES"; payload: { chatId: string; loading: boolean } }
-  | { type: "SET_HAS_MORE_MESSAGES"; payload: { chatId: string; hasMore: boolean } };
+  | { type: "SET_HAS_MORE_MESSAGES"; payload: { chatId: string; hasMore: boolean } }
+  | { type: "SET_CURRENT_VIEW"; payload: CurrentView }
+  | { type: "SET_SHOW_LOGOUT_PROMPT"; payload: boolean }
+  | { type: "SET_HEADER_SELECTED_BUTTON"; payload: "settings" | "logout" }
+  | { type: "RESET_STATE" };
 
 export const initialState: AppState = {
   connectionState: "disconnected",
@@ -30,6 +37,9 @@ export const initialState: AppState = {
   focusedPanel: "chatList",
   loadingOlderMessages: {},
   hasMoreMessages: {},
+  currentView: "chat",
+  showLogoutPrompt: false,
+  headerSelectedButton: "settings",
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -106,6 +116,18 @@ export function appReducer(state: AppState, action: AppAction): AppState {
             : chat
         ),
       };
+
+    case "SET_CURRENT_VIEW":
+      return { ...state, currentView: action.payload };
+
+    case "SET_SHOW_LOGOUT_PROMPT":
+      return { ...state, showLogoutPrompt: action.payload };
+
+    case "SET_HEADER_SELECTED_BUTTON":
+      return { ...state, headerSelectedButton: action.payload };
+
+    case "RESET_STATE":
+      return { ...initialState };
 
     default:
       return state;
