@@ -32,6 +32,8 @@ function getStatusText(state: ConnectionState): string {
 function StatusBarInner({ connectionState, focusedPanel }: StatusBarProps) {
   const getHints = () => {
     switch (focusedPanel) {
+      case "header":
+        return "[←→: Select] [Enter: Activate] [Tab: Next]";
       case "chatList":
         return "[↑↓: Navigate] [Enter: Open] [Tab: Next] [Esc: Back]";
       case "messages":
