@@ -74,3 +74,22 @@ export function deleteAllData(customDir?: string): void {
   deleteSession(customDir);
   deleteConfig(customDir);
 }
+
+export function loadSession(customDir?: string): string {
+  const path = getSessionPath(customDir);
+  if (!existsSync(path)) return "";
+  return readFileSync(path, "utf-8");
+}
+
+export function saveSession(session: string, customDir?: string): void {
+  const dir = getConfigDir(customDir);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+  const path = getSessionPath(customDir);
+  writeFileSync(path, session);
+}
+
+export function sessionExists(customDir?: string): boolean {
+  return existsSync(getSessionPath(customDir));
+}

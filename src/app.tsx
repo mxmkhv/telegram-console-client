@@ -11,7 +11,7 @@ import { WelcomeBack } from "./components/WelcomeBack";
 import { HeaderBar } from "./components/HeaderBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { LogoutPrompt } from "./components/LogoutPrompt";
-import { hasConfig, loadConfigWithEnvOverrides, saveConfig, deleteSession, deleteAllData, getSessionPath } from "./config";
+import { hasConfig, loadConfigWithEnvOverrides, saveConfig, deleteSession, deleteAllData, sessionExists, loadSession, saveSession } from "./config";
 import { createTelegramService } from "./services/telegram";
 import { createMockTelegramService } from "./services/telegram.mock";
 import type { AppConfig, TelegramService, LogoutMode } from "./types";
@@ -347,9 +347,7 @@ export function App({ useMock = false }: AppProps) {
       if (loadedConfig && loadedConfig.apiId && loadedConfig.apiHash) {
         setConfig(loadedConfig);
         // Check if session exists (returning user)
-        const { existsSync } = require("fs");
-        const sessionExists = existsSync(getSessionPath());
-        setIsReturningUser(sessionExists);
+        setIsReturningUser(sessionExists());
         setIsSetupComplete(true);
       }
     }
@@ -361,18 +359,7 @@ export function App({ useMock = false }: AppProps) {
         setTelegramService(createMockTelegramService());
       } else {
         // Try to load existing session
-        let session = "";
-        try {
-          const { readFileSync, existsSync } = require("fs");
-          const { join } = require("path");
-          const { homedir } = require("os");
-          const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
-          if (existsSync(sessionPath)) {
-            session = readFileSync(sessionPath, "utf-8");
-          }
-        } catch {
-          // Ignore errors reading session
-        }
+        const session = loadSession();
 
         setTelegramService(
           createTelegramService({
@@ -381,11 +368,7 @@ export function App({ useMock = false }: AppProps) {
             session,
             onSessionUpdate: (newSession) => {
               try {
-                const { writeFileSync } = require("fs");
-                const { join } = require("path");
-                const { homedir } = require("os");
-                const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
-                writeFileSync(sessionPath, newSession);
+                saveSession(newSession);
               } catch {
                 // Ignore errors saving session
               }
@@ -416,11 +399,7 @@ export function App({ useMock = false }: AppProps) {
     saveConfig(newConfig);
     // Save session string to config directory
     if (session) {
-      const { writeFileSync } = require("fs");
-      const { join } = require("path");
-      const { homedir } = require("os");
-      const sessionPath = join(homedir(), ".config", "telegram-console-client", "session");
-      writeFileSync(sessionPath, session);
+      saveSession(session);
     }
     setConfig(newConfig);
     setIsSetupComplete(true);
