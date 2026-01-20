@@ -27,13 +27,6 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
   const [chatIndex, setChatIndex] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
 
-  const handleHeaderSelectButton = useCallback(
-    (button: "settings" | "logout") => {
-      dispatch({ type: "SET_HEADER_SELECTED_BUTTON", payload: button });
-    },
-    [dispatch]
-  );
-
   const handleHeaderActivate = useCallback(
     (button: "settings" | "logout") => {
       if (button === "settings") {
