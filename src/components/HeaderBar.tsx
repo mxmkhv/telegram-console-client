@@ -4,16 +4,9 @@ import { Box, Text } from "ink";
 interface HeaderBarProps {
   isFocused: boolean;
   selectedButton: "settings" | "logout";
-  onSelectButton: (button: "settings" | "logout") => void;
-  onActivate: (button: "settings" | "logout") => void;
 }
 
-function HeaderBarInner({
-  isFocused,
-  selectedButton,
-  onSelectButton,
-  onActivate,
-}: HeaderBarProps) {
+function HeaderBarInner({ isFocused, selectedButton }: HeaderBarProps) {
   const settingsStyle = {
     bold: isFocused && selectedButton === "settings",
     color: isFocused && selectedButton === "settings" ? "cyan" : undefined,

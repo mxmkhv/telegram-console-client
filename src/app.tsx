@@ -286,8 +286,6 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
       <HeaderBar
         isFocused={isHeaderFocused}
         selectedButton={state.headerSelectedButton}
-        onSelectButton={handleHeaderSelectButton}
-        onActivate={handleHeaderActivate}
       />
       {state.showLogoutPrompt ? (
         <Box flexGrow={1} alignItems="center" justifyContent="center">
