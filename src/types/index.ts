@@ -13,7 +13,7 @@ export interface AppConfig {
 }
 
 export type ConnectionState = "disconnected" | "connecting" | "connected";
-export type FocusedPanel = "header" | "chatList" | "messages" | "input";
+export type FocusedPanel = "header" | "chatList" | "messages" | "input" | "mediaPanel";
 export type CurrentView = "chat" | "settings";
 export type LogoutMode = "session" | "full";
 

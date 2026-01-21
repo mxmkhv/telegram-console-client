@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { Box, useInput, useApp as useInkApp } from "ink";
+import { Box, useInput, useApp as useInkApp, useStdout } from "ink";
 import { AppProvider, useApp } from "./state/context";
 import { ChatList } from "./components/ChatList";
 import { MessageView } from "./components/MessageView";
@@ -11,6 +11,7 @@ import { WelcomeBack } from "./components/WelcomeBack";
 import { HeaderBar } from "./components/HeaderBar";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { LogoutPrompt } from "./components/LogoutPrompt";
+import { MediaPanel } from "./components/MediaPanel";
 import { hasConfig, loadConfigWithEnvOverrides, saveConfig, deleteSession, deleteAllData, sessionExists, loadSession, saveSession } from "./config";
 import { createTelegramService } from "./services/telegram";
 import { createMockTelegramService } from "./services/telegram.mock";
@@ -24,6 +25,7 @@ interface MainAppProps {
 function MainApp({ telegramService, onLogout }: MainAppProps) {
   const { state, dispatch } = useApp();
   const { exit } = useInkApp();
+  const { stdout } = useStdout();
   const [chatIndex, setChatIndex] = useState(0);
   const [messageIndex, setMessageIndex] = useState(0);
 
@@ -48,6 +50,11 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
 
   const handleLogoutCancel = useCallback(() => {
     dispatch({ type: "SET_SHOW_LOGOUT_PROMPT", payload: false });
+  }, [dispatch]);
+
+  const handleCloseMediaPanel = useCallback(() => {
+    dispatch({ type: "CLOSE_MEDIA_PANEL" });
+    dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
   }, [dispatch]);
 
   // Initialize connection and load chats
@@ -84,6 +91,13 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
       });
     }
   }, [state.selectedChatId, telegramService, dispatch]);
+
+  // Focus media panel when it opens
+  useEffect(() => {
+    if (state.mediaPanel.isOpen) {
+      dispatch({ type: "SET_FOCUSED_PANEL", payload: "mediaPanel" });
+    }
+  }, [state.mediaPanel.isOpen, dispatch]);
 
   const handleSelectChat = useCallback(
     (chatId: string) => {
@@ -272,7 +286,20 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
   const isChatListFocused = state.focusedPanel === "chatList";
   const isMessagesFocused = state.focusedPanel === "messages";
   const isInputFocused = state.focusedPanel === "input";
+  const isMediaPanelFocused = state.focusedPanel === "mediaPanel";
   const isLoadingOlder = state.selectedChatId ? state.loadingOlderMessages[state.selectedChatId] ?? false : false;
+
+  // Calculate terminal width and media panel width
+  const terminalWidth = stdout?.columns ?? 80;
+  const mediaPanelWidth = Math.floor(terminalWidth * 0.4);
+
+  // Find the message for the media panel
+  const mediaPanelMessage = useMemo(() => {
+    if (!state.mediaPanel.isOpen || state.mediaPanel.messageId === null) {
+      return null;
+    }
+    return currentMessages.find((m) => m.id === state.mediaPanel.messageId) ?? null;
+  }, [state.mediaPanel.isOpen, state.mediaPanel.messageId, currentMessages]);
 
   return (
     <Box flexDirection="column" height="100%">
@@ -297,13 +324,22 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
               isFocused={isChatListFocused}
             />
             <MessageView
-              isFocused={isMessagesFocused}
+              isFocused={isMessagesFocused && !state.mediaPanel.isOpen}
               selectedChatTitle={selectedChat?.title ?? null}
               messages={currentMessages}
               selectedIndex={messageIndex}
               isLoadingOlder={isLoadingOlder}
               canLoadOlder={canLoadOlder}
             />
+            {state.mediaPanel.isOpen && mediaPanelMessage && (
+              <MediaPanel
+                message={mediaPanelMessage}
+                panelWidth={mediaPanelWidth}
+                downloadMedia={telegramService.downloadMedia.bind(telegramService)}
+                onClose={handleCloseMediaPanel}
+                isFocused={isMediaPanelFocused}
+              />
+            )}
           </Box>
           <InputBar
             isFocused={isInputFocused}

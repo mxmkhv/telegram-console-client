@@ -243,8 +243,8 @@
         "Typecheck passes",
         "Verify visually: pressing Enter on media opens side panel"
       ],
-      "passes": false,
-      "notes": "File: src/components/App.tsx"
+      "passes": true,
+      "notes": "File: src/app.tsx - Added MediaPanel import, useStdout for terminal width, focus management via useEffect, and conditional rendering with 40% panel width"
     },
     {
       "id": "US-017",
