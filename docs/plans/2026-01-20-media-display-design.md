@@ -12,7 +12,7 @@ Add image, sticker, and GIF display support to the TUI Telegram client with prog
 | Rendering engine | `terminal-image` (ANSI blocks), configurable later |
 | Display levels | Placeholder → inline preview (selected) → side panel (Enter) |
 | Panel layout | Right side, ~40% width, split view |
-| Caching | Download on demand only, no disk cache |
+| Caching | In-memory LRU cache (50 items), no disk cache |
 | Sticker handling | Static WebP rendered, animated/video show metadata |
 | GIF handling | Static thumbnail normally, animate in panel (stretch) |
 | Panel controls | Focus panel on open, Enter/Escape to close |
@@ -60,6 +60,12 @@ interface AppState {
     imageData: string | null;  // ANSI string from terminal-image
     error: string | null;
   };
+  // Inline preview state per message (keyed by messageId)
+  inlinePreviews: Map<number, {
+    loading: boolean;
+    imageData: string | null;
+    error: string | null;
+  }>;
 }
 ```
 
@@ -72,6 +78,10 @@ type Action =
   | { type: 'SET_MEDIA_LOADING'; payload: boolean }
   | { type: 'SET_MEDIA_DATA'; payload: string }
   | { type: 'SET_MEDIA_ERROR'; payload: string }
+  // Inline preview actions
+  | { type: 'SET_INLINE_PREVIEW_LOADING'; payload: { messageId: number } }
+  | { type: 'SET_INLINE_PREVIEW_DATA'; payload: { messageId: number; imageData: string } }
+  | { type: 'SET_INLINE_PREVIEW_ERROR'; payload: { messageId: number; error: string } }
 ```
 
 ## GramJS Media Extraction
@@ -147,6 +157,94 @@ async downloadMedia(message: Message): Promise<Buffer | undefined> {
   return buffer as Buffer;
 }
 ```
+
+## In-Memory Media Cache (`src/services/mediaCache.ts`)
+
+**Why**: Prevents re-downloading media when navigating back to previously viewed messages or reopening the panel. Uses LRU eviction to bound memory usage.
+
+```typescript
+import { LRUCache } from 'lru-cache';
+
+interface CachedMedia {
+  buffer: Buffer;
+  inlinePreview: string | null;  // Rendered ANSI for inline
+  panelImage: string | null;     // Rendered ANSI for panel (size-specific)
+}
+
+// Module-level cache - persists across renders
+const mediaCache = new LRUCache<number, CachedMedia>({
+  max: 50,  // Max 50 media items in memory
+  // Evict based on buffer size (rough estimate)
+  maxSize: 100 * 1024 * 1024, // 100MB max
+  sizeCalculation: (value) => value.buffer.length,
+});
+
+// Track in-flight requests to prevent duplicate downloads
+const pendingDownloads = new Map<number, Promise<Buffer | undefined>>();
+
+export async function getMediaBuffer(
+  messageId: number,
+  downloadFn: () => Promise<Buffer | undefined>
+): Promise<Buffer | undefined> {
+  // Check cache first
+  const cached = mediaCache.get(messageId);
+  if (cached) return cached.buffer;
+
+  // Check if download already in progress (deduplication)
+  const pending = pendingDownloads.get(messageId);
+  if (pending) return pending;
+
+  // Start new download
+  const downloadPromise = downloadFn();
+  pendingDownloads.set(messageId, downloadPromise);
+
+  try {
+    const buffer = await downloadPromise;
+    if (buffer) {
+      mediaCache.set(messageId, {
+        buffer,
+        inlinePreview: null,
+        panelImage: null,
+      });
+    }
+    return buffer;
+  } finally {
+    pendingDownloads.delete(messageId);
+  }
+}
+
+export function getCachedInlinePreview(messageId: number): string | null {
+  return mediaCache.get(messageId)?.inlinePreview ?? null;
+}
+
+export function setCachedInlinePreview(messageId: number, preview: string): void {
+  const cached = mediaCache.get(messageId);
+  if (cached) {
+    cached.inlinePreview = preview;
+  }
+}
+
+export function getCachedPanelImage(messageId: number): string | null {
+  return mediaCache.get(messageId)?.panelImage ?? null;
+}
+
+export function setCachedPanelImage(messageId: number, image: string): void {
+  const cached = mediaCache.get(messageId);
+  if (cached) {
+    cached.panelImage = image;
+  }
+}
+
+export function clearCache(): void {
+  mediaCache.clear();
+  pendingDownloads.clear();
+}
+```
+
+**Key optimizations**:
+1. **LRU eviction** - Automatically removes least-recently-used items when cache is full
+2. **Request deduplication** - `pendingDownloads` Map prevents duplicate concurrent downloads
+3. **Rendered image caching** - Stores both buffer and rendered ANSI strings to avoid re-rendering
 
 ## Component Architecture
 
@@ -303,10 +401,36 @@ export function renderGif(
 }
 ```
 
-### Metadata Formatter
+### Metadata Formatter (with Memoization)
 
 ```typescript
-export function formatMediaMetadata(media: MediaAttachment): string {
+// Cache for formatBytes - avoids repeated string operations
+const formatBytesCache = new Map<number, string>();
+
+function formatBytes(bytes: number): string {
+  const cached = formatBytesCache.get(bytes);
+  if (cached) return cached;
+
+  let result: string;
+  if (bytes < 1024) {
+    result = `${bytes}B`;
+  } else if (bytes < 1024 * 1024) {
+    result = `${(bytes / 1024).toFixed(1)}KB`;
+  } else {
+    result = `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  }
+
+  formatBytesCache.set(bytes, result);
+  return result;
+}
+
+// Cache for metadata strings - keyed by messageId for stability
+const metadataCache = new Map<number, string>();
+
+export function formatMediaMetadata(media: MediaAttachment, messageId: number): string {
+  const cached = metadataCache.get(messageId);
+  if (cached) return cached;
+
   const icons: Record<string, string> = {
     photo: '📷',
     sticker: '😀',
@@ -325,15 +449,13 @@ export function formatMediaMetadata(media: MediaAttachment): string {
     ? `${media.isAnimated ? 'Animated Sticker' : 'Sticker'}${emoji}`
     : capitalize(media.type);
 
-  return `[${icon} ${label}${parts ? `: ${parts}` : ''}]`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  const result = `[${icon} ${label}${parts ? `: ${parts}` : ''}]`;
+  metadataCache.set(messageId, result);
+  return result;
 }
 ```
+
+**Why memoize**: These pure functions are called during render for every media message. Caching prevents repeated string concatenation and number formatting.
 
 ## MessageView Line Calculation
 
@@ -353,7 +475,34 @@ function getMessageLineCount(msg: Message, isSelected: boolean): number {
 }
 ```
 
-## Action Flow
+## Action Flows
+
+### Inline Preview Flow (on message selection)
+
+```
+User navigates to a media message (j/k keys)
+         ↓
+MessageView re-renders with new selectedIndex
+         ↓
+MediaPreview component for selected message renders
+         ↓
+useEffect checks cache: getCachedInlinePreview(messageId)
+         ↓ cache hit
+Render cached ANSI string immediately (no loading state)
+         ↓ cache miss
+dispatch({ type: 'SET_INLINE_PREVIEW_LOADING', payload: { messageId } })
+         ↓
+getMediaBuffer(messageId, () => telegram.downloadMedia(message))
+         ↓ (deduplicates concurrent requests automatically)
+renderInlinePreview(buffer)
+         ↓
+setCachedInlinePreview(messageId, ansiString)
+dispatch({ type: 'SET_INLINE_PREVIEW_DATA', payload: { messageId, imageData } })
+```
+
+**Key**: Cache check happens synchronously before any async work. This prevents flicker when navigating back to previously viewed messages.
+
+### Panel Open Flow (Enter key)
 
 ```
 User presses Enter on selected media message
@@ -364,14 +513,24 @@ dispatch({ type: 'OPEN_MEDIA_PANEL', payload: { messageId } })
          ↓
 Focus moves to mediaPanel
          ↓
-useEffect triggers download:
-  1. Get message from state by messageId
-  2. Call telegramService.downloadMedia(message)
-  3. Convert buffer: terminalImage.buffer(data, { width: '90%' })
-  4. dispatch({ type: 'SET_MEDIA_DATA', payload: ansiString })
+useEffect checks cache: getCachedPanelImage(messageId)
+         ↓ cache hit
+dispatch({ type: 'SET_MEDIA_DATA', payload: cachedImage })
+(no loading state shown)
+         ↓ cache miss
+dispatch({ type: 'SET_MEDIA_LOADING', payload: true })
+         ↓
+getMediaBuffer(messageId, () => telegram.downloadMedia(message))
+         ↓ (uses cached buffer if available from inline preview)
+renderPanelImage(buffer, panelWidth)
+         ↓
+setCachedPanelImage(messageId, ansiString)
+dispatch({ type: 'SET_MEDIA_DATA', payload: ansiString })
          ↓
 MediaPanel renders the image
 ```
+
+**Key**: If user viewed inline preview first, buffer is already cached. Only re-rendering at panel size is needed.
 
 ## Implementation Plan
 
@@ -380,9 +539,10 @@ MediaPanel renders the image
 | File | Purpose |
 |------|---------|
 | `src/components/MediaPlaceholder.tsx` | Inline metadata display |
-| `src/components/MediaPreview.tsx` | Small inline preview when selected |
+| `src/components/MediaPreview.tsx` | Small inline preview when selected (memoized) |
 | `src/components/MediaPanel.tsx` | Full side panel view |
 | `src/services/imageRenderer.ts` | terminal-image wrapper utilities |
+| `src/services/mediaCache.ts` | LRU cache for buffers and rendered images |
 
 ### Files to Modify
 
@@ -398,21 +558,93 @@ MediaPanel renders the image
 
 ```json
 {
-  "terminal-image": "^3.0.0"
+  "terminal-image": "^3.0.0",
+  "lru-cache": "^10.0.0"
 }
+```
+
+**Note on `terminal-image`**: Import the specific functions needed rather than the default export to minimize bundle impact:
+```typescript
+// Preferred: direct function import
+import { buffer as renderBuffer, gifBuffer } from 'terminal-image';
+
+// Avoid: barrel import pulls in all exports
+import terminalImage from 'terminal-image';
 ```
 
 ### Implementation Order
 
 1. Types and data model
 2. GramJS media extraction
-3. Image renderer utilities
-4. MediaPlaceholder component
-5. State management updates
-6. MessageView integration
-7. MediaPanel component
-8. App layout changes
-9. GIF animation (stretch goal)
+3. **Media cache service** (before components to enable caching from start)
+4. Image renderer utilities
+5. MediaPlaceholder component (memoized)
+6. State management updates (including inline preview state)
+7. **MediaPreview component** (with cache integration)
+8. MessageView integration
+9. MediaPanel component (with cache integration)
+10. App layout changes
+11. GIF animation (stretch goal)
+
+## Performance Considerations
+
+### Re-render Optimization
+
+**MediaPlaceholder**: Should be memoized with `React.memo()` since it receives static media metadata:
+```tsx
+const MediaPlaceholder = memo(function MediaPlaceholder({
+  media,
+  messageId
+}: Props) {
+  const metadata = formatMediaMetadata(media, messageId);
+  return <Text>{metadata}</Text>;
+});
+```
+
+**MediaPreview**: Must be memoized to prevent re-rendering when other messages change:
+```tsx
+const MediaPreview = memo(function MediaPreview({
+  messageId,
+  media
+}: Props) {
+  // Cache check is synchronous - no loading flicker on cache hit
+  const cachedPreview = getCachedInlinePreview(messageId);
+  const [preview, setPreview] = useState(cachedPreview);
+  const [loading, setLoading] = useState(!cachedPreview);
+
+  useEffect(() => {
+    if (cachedPreview) return; // Already have it
+
+    let cancelled = false;
+
+    (async () => {
+      const buffer = await getMediaBuffer(messageId, () =>
+        telegramService.downloadMedia(message)
+      );
+      if (cancelled || !buffer) return;
+
+      const rendered = await renderInlinePreview(buffer);
+      if (cancelled) return;
+
+      setCachedInlinePreview(messageId, rendered);
+      setPreview(rendered);
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
+  }, [messageId]);
+
+  if (loading) return <Text dimColor>Loading preview...</Text>;
+  if (!preview) return null;
+  return <Text>{preview}</Text>;
+});
+```
+
+### Avoiding Waterfalls
+
+1. **Don't await in render path**: Cache checks are synchronous. Async downloads happen in useEffect.
+2. **Request deduplication**: `pendingDownloads` Map prevents duplicate concurrent downloads when rapidly navigating messages.
+3. **Buffer reuse**: Panel view reuses buffer from inline preview - only re-renders at different size.
 
 ## Out of Scope
 
