@@ -100,7 +100,7 @@
         "capitalize() helper function",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "Use direct imports from terminal-image to minimize bundle impact"
     },
     {
