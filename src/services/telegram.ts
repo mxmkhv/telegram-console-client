@@ -1,7 +1,63 @@
-import { TelegramClient } from "telegram";
+import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions";
 import { NewMessage, NewMessageEvent } from "telegram/events";
-import type { TelegramService, ConnectionState, Message } from "../types";
+import type { TelegramService, ConnectionState, Message, MediaAttachment } from "../types";
+
+function extractMedia(msg: Api.Message): MediaAttachment | undefined {
+  const { media } = msg;
+  if (!media) return undefined;
+
+  // Photo
+  if (media.className === 'MessageMediaPhoto' && (media as Api.MessageMediaPhoto).photo) {
+    const photo = (media as Api.MessageMediaPhoto).photo as Api.Photo;
+    const largest = photo.sizes?.slice(-1)[0] as { size?: number; w?: number; h?: number } | undefined;
+    return {
+      type: 'photo',
+      fileSize: largest?.size,
+      width: largest?.w,
+      height: largest?.h,
+      mimeType: 'image/jpeg',
+      _message: msg,
+    };
+  }
+
+  // Document (stickers, GIFs, files)
+  if (media.className === 'MessageMediaDocument' && (media as Api.MessageMediaDocument).document) {
+    const doc = (media as Api.MessageMediaDocument).document as Api.Document;
+    const attrs = doc.attributes || [];
+
+    // Check for sticker
+    const stickerAttr = attrs.find(a => a.className === 'DocumentAttributeSticker');
+    if (stickerAttr) {
+      const isAnimated = doc.mimeType === 'application/x-tgsticker'
+                      || doc.mimeType === 'video/webm';
+      return {
+        type: 'sticker',
+        fileSize: Number(doc.size),
+        emoji: (stickerAttr as Api.DocumentAttributeSticker).alt,
+        isAnimated,
+        mimeType: doc.mimeType,
+        _message: msg,
+      };
+    }
+
+    // Check for GIF/animation
+    const isAnimated = attrs.some(a => a.className === 'DocumentAttributeAnimated');
+    if (isAnimated || doc.mimeType === 'video/mp4') {
+      const videoAttr = attrs.find(a => a.className === 'DocumentAttributeVideo') as Api.DocumentAttributeVideo | undefined;
+      return {
+        type: 'gif',
+        fileSize: Number(doc.size),
+        width: videoAttr?.w,
+        height: videoAttr?.h,
+        mimeType: doc.mimeType,
+        _message: msg,
+      };
+    }
+  }
+
+  return undefined;
+}
 
 export interface TelegramServiceOptions {
   apiId: number | string;

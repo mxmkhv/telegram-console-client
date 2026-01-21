@@ -29,7 +29,7 @@
         "Stores _message reference for later download",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "File: src/services/telegram.ts"
     },
     {
