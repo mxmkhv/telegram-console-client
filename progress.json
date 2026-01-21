@@ -83,8 +83,8 @@
         "Package added to package.json dependencies",
         "Typecheck passes"
       ],
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Installed terminal-image@4.2.0"
     },
     {
       "id": "US-007",
