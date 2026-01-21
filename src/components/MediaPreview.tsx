@@ -1,8 +1,8 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Text, Box } from 'ink';
 import type { Message } from '../types/index.js';
-import { getMediaBuffer, getCachedInlinePreview, setCachedInlinePreview } from '../services/mediaCache.js';
-import { renderInlinePreview } from '../services/imageRenderer.js';
+import { getMediaBuffer } from '../services/mediaCache.js';
+import { renderInlinePreview, calculatePreviewDimensions, type PreviewResult } from '../services/imageRenderer.js';
 
 interface Props {
   message: Message;
@@ -11,16 +11,21 @@ interface Props {
 
 export const MediaPreview = memo(function MediaPreview({ message, downloadMedia }: Props) {
   const messageId = message.id;
+  const media = message.media!;
 
-  // Synchronous cache check - no flicker on cache hit
-  const cachedPreview = getCachedInlinePreview(messageId);
-  const [preview, setPreview] = useState<string | null>(cachedPreview);
-  const [loading, setLoading] = useState(!cachedPreview);
+  // Calculate optimal preview dimensions from image aspect ratio
+  const { width: previewWidth, height: previewHeight } = useMemo(() => {
+    const imgWidth = media.width ?? 100;
+    const imgHeight = media.height ?? 100;
+    return calculatePreviewDimensions(imgWidth, imgHeight);
+  }, [media.width, media.height]);
+
+  // State for preview result (includes image and actual dimensions)
+  const [previewResult, setPreviewResult] = useState<PreviewResult | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cachedPreview) return;
-
     let cancelled = false;
 
     // 200ms debounce - cancel pending on selection change
@@ -37,11 +42,10 @@ export const MediaPreview = memo(function MediaPreview({ message, downloadMedia 
           return;
         }
 
-        const rendered = await renderInlinePreview(buffer);
+        const result = await renderInlinePreview(buffer, previewWidth, previewHeight);
         if (cancelled) return;
 
-        setCachedInlinePreview(messageId, rendered);
-        setPreview(rendered);
+        setPreviewResult(result);
         setLoading(false);
       } catch (err) {
         if (!cancelled) {
@@ -55,12 +59,12 @@ export const MediaPreview = memo(function MediaPreview({ message, downloadMedia 
       cancelled = true;
       clearTimeout(timeoutId); // Cancel pending debounced download
     };
-  }, [messageId, cachedPreview, message, downloadMedia]);
+  }, [messageId, message, downloadMedia, previewWidth, previewHeight]);
 
   if (loading) {
     return (
       <Box borderStyle="round" paddingX={1}>
-        <Text dimColor>Loading preview...</Text>
+        <Text dimColor>Loading...</Text>
       </Box>
     );
   }
@@ -68,16 +72,22 @@ export const MediaPreview = memo(function MediaPreview({ message, downloadMedia 
   if (error) {
     return (
       <Box borderStyle="round" paddingX={1}>
-        <Text color="red">Warning: {error}</Text>
+        <Text color="red">{error}</Text>
       </Box>
     );
   }
 
-  if (!preview) return null;
+  if (!previewResult) return null;
+
+  // Box size: actual image dimensions + border (2 chars each side)
+  const boxWidth = previewResult.width + 2;
+  const boxHeight = previewResult.height + 2;
 
   return (
-    <Box borderStyle="round">
-      <Text>{preview}</Text>
+    <Box borderStyle="round" flexDirection="column">
+      <Box width={previewResult.width} height={previewResult.height} overflow="hidden">
+        <Text>{previewResult.image}</Text>
+      </Box>
     </Box>
   );
 });

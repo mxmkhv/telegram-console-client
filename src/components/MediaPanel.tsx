@@ -1,25 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import type { Message } from '../types/index.js';
-import { getMediaBuffer, getCachedPanelImage, setCachedPanelImage } from '../services/mediaCache.js';
+import { getMediaBuffer } from '../services/mediaCache.js';
 import { renderPanelImage, formatMediaMetadata } from '../services/imageRenderer.js';
+
+// Panel chrome: border(2) + header(1) + marginBottom(1) + marginTop(1) + metadata(1) + hint(1) = 7 rows
+// Plus 1 for bottom border inner = 8 total non-image rows
+const PANEL_CHROME_ROWS = 8;
+const MIN_IMAGE_HEIGHT = 4;
 
 interface Props {
   message: Message;
   panelWidth: number;
+  panelHeight: number;
   downloadMedia: (message: Message) => Promise<Buffer | undefined>;
   onClose: () => void;
   isFocused?: boolean;
 }
 
-export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocused = true }: Props) {
+export function MediaPanel({ message, panelWidth, panelHeight, downloadMedia, onClose, isFocused = true }: Props) {
   const messageId = message.id;
   const media = message.media!;
 
-  // Synchronous cache check
-  const cachedImage = getCachedPanelImage(messageId);
-  const [image, setImage] = useState<string | null>(cachedImage);
-  const [loading, setLoading] = useState(!cachedImage);
+  const imageMaxHeight = Math.max(MIN_IMAGE_HEIGHT, panelHeight - PANEL_CHROME_ROWS);
+
+  // Skip panel image cache - dimensions may have changed, always re-render
+  // Buffer cache still prevents re-downloads
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Handle Enter/Escape to close
@@ -30,8 +38,6 @@ export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocu
   }, { isActive: isFocused });
 
   useEffect(() => {
-    if (cachedImage) return;
-
     let cancelled = false;
 
     (async () => {
@@ -45,10 +51,9 @@ export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocu
           return;
         }
 
-        const rendered = await renderPanelImage(buffer, panelWidth);
+        const rendered = await renderPanelImage(buffer, panelWidth, imageMaxHeight);
         if (cancelled) return;
 
-        setCachedPanelImage(messageId, rendered);
         setImage(rendered);
         setLoading(false);
       } catch (err) {
@@ -62,7 +67,7 @@ export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocu
     return () => {
       cancelled = true;
     };
-  }, [messageId, cachedImage, message, downloadMedia, panelWidth]);
+  }, [messageId, message, downloadMedia, panelWidth, imageMaxHeight]);
 
   const metadata = formatMediaMetadata(media, messageId);
 
@@ -72,6 +77,7 @@ export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocu
       borderStyle="round"
       borderColor="blue"
       width={panelWidth}
+      height={panelHeight}
       paddingX={1}
     >
       <Box marginBottom={1}>

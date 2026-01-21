@@ -2,7 +2,7 @@ import React, { memo, useMemo } from "react";
 import { Box, Text } from "ink";
 import type { Chat } from "../types";
 
-const VISIBLE_ITEMS = 15;
+const VISIBLE_ITEMS = 20;
 
 interface ChatListProps {
   chats: Chat[];

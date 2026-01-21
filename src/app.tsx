@@ -289,9 +289,18 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
   const isMediaPanelFocused = state.focusedPanel === "mediaPanel";
   const isLoadingOlder = state.selectedChatId ? state.loadingOlderMessages[state.selectedChatId] ?? false : false;
 
-  // Calculate terminal width and media panel width
+  // Calculate terminal dimensions and panel sizes
   const terminalWidth = stdout?.columns ?? 80;
+  const chatListWidth = 35;
   const mediaPanelWidth = Math.floor(terminalWidth * 0.4);
+  // MessageView width: fills remaining space, shrinks when media panel is open
+  const messageViewWidth = state.mediaPanel.isOpen
+    ? terminalWidth - chatListWidth - mediaPanelWidth
+    : terminalWidth - chatListWidth;
+  // Panel height: visible rows (20) + header/border chrome (3) to match ChatList and MessageView
+  const visibleRows = 20;
+  const panelChrome = 3;
+  const panelHeight = visibleRows + panelChrome;
 
   // Find the message for the media panel
   const mediaPanelMessage = useMemo(() => {
@@ -330,11 +339,13 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
               selectedIndex={messageIndex}
               isLoadingOlder={isLoadingOlder}
               canLoadOlder={canLoadOlder}
+              width={messageViewWidth}
             />
             {state.mediaPanel.isOpen && mediaPanelMessage && (
               <MediaPanel
                 message={mediaPanelMessage}
                 panelWidth={mediaPanelWidth}
+                panelHeight={panelHeight}
                 downloadMedia={telegramService.downloadMedia.bind(telegramService)}
                 onClose={handleCloseMediaPanel}
                 isFocused={isMediaPanelFocused}

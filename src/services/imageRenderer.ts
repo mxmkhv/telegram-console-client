@@ -46,21 +46,76 @@ export async function renderImageBuffer(
   });
 }
 
-export async function renderInlinePreview(buffer: Buffer): Promise<string> {
-  return renderWithAnsiBlocks(buffer, {
-    height: 5,
+// Inline preview constraints
+const MAX_PREVIEW_WIDTH = 25;
+const MAX_PREVIEW_HEIGHT = 15;
+
+export function calculatePreviewDimensions(imageWidth: number, imageHeight: number): { width: number; height: number } {
+  const aspectRatio = imageWidth / imageHeight;
+
+  // Try fitting by height first
+  let width = Math.round(MAX_PREVIEW_HEIGHT * aspectRatio);
+  let height = MAX_PREVIEW_HEIGHT;
+
+  // If width exceeds max, fit by width instead
+  if (width > MAX_PREVIEW_WIDTH) {
+    width = MAX_PREVIEW_WIDTH;
+    height = Math.round(MAX_PREVIEW_WIDTH / aspectRatio);
+  }
+
+  // Ensure minimum dimensions
+  return {
+    width: Math.max(5, Math.min(width, MAX_PREVIEW_WIDTH)),
+    height: Math.max(3, Math.min(height, MAX_PREVIEW_HEIGHT)),
+  };
+}
+
+// Strip ANSI escape codes to measure actual display width
+function stripAnsi(str: string): string {
+  // Match all ANSI escape sequences including OSC, CSI, etc.
+  return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07)/g, '');
+}
+
+export interface PreviewResult {
+  image: string;
+  width: number;
+  height: number;
+}
+
+export async function renderInlinePreview(buffer: Buffer, width: number, height: number): Promise<PreviewResult> {
+  const result = await renderWithAnsiBlocks(buffer, {
+    width,
+    height,
     preserveAspectRatio: true,
   });
+
+  // Trim trailing newlines
+  const image = result.replace(/\n+$/, '');
+
+  // Measure actual dimensions
+  const lines = image.split('\n');
+  const actualHeight = lines.length;
+  const actualWidth = Math.max(...lines.map(line => stripAnsi(line).length));
+
+  return { image, width: actualWidth, height: actualHeight };
 }
 
 export async function renderPanelImage(
   buffer: Buffer,
-  panelWidth: number
+  panelWidth: number,
+  maxHeight?: number
 ): Promise<string> {
-  return renderWithAnsiBlocks(buffer, {
-    width: Math.floor(panelWidth * 0.9),
+  // Account for border (2 chars) + paddingX (2 chars) = 4 chars overhead
+  const contentWidth = panelWidth - 4;
+
+  const result = await renderWithAnsiBlocks(buffer, {
+    width: contentWidth,
+    height: maxHeight,
     preserveAspectRatio: true,
   });
+
+  // Trim trailing newlines to prevent extra spacing
+  return result.replace(/\n+$/, '');
 }
 
 // Memoization caches

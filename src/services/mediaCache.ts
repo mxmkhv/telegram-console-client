@@ -2,8 +2,6 @@ import { LRUCache } from 'lru-cache';
 
 interface CachedMedia {
   buffer: Buffer;
-  inlinePreview: string | null;
-  panelImage: string | null;
 }
 
 const mediaCache = new LRUCache<number, CachedMedia>({
@@ -30,37 +28,11 @@ export async function getMediaBuffer(
   try {
     const buffer = await downloadPromise;
     if (buffer) {
-      mediaCache.set(messageId, {
-        buffer,
-        inlinePreview: null,
-        panelImage: null,
-      });
+      mediaCache.set(messageId, { buffer });
     }
     return buffer;
   } finally {
     pendingDownloads.delete(messageId);
-  }
-}
-
-export function getCachedInlinePreview(messageId: number): string | null {
-  return mediaCache.get(messageId)?.inlinePreview ?? null;
-}
-
-export function setCachedInlinePreview(messageId: number, preview: string): void {
-  const cached = mediaCache.get(messageId);
-  if (cached) {
-    cached.inlinePreview = preview;
-  }
-}
-
-export function getCachedPanelImage(messageId: number): string | null {
-  return mediaCache.get(messageId)?.panelImage ?? null;
-}
-
-export function setCachedPanelImage(messageId: number, image: string): void {
-  const cached = mediaCache.get(messageId);
-  if (cached) {
-    cached.panelImage = image;
   }
 }
 
