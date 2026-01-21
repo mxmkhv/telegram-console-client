@@ -154,7 +154,7 @@
         "Handles cleanup on unmount (cancelled flag + clearTimeout)",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "Scope: ALL non-animated media (photos, static stickers, GIF thumbnails). Uses useInput per component pattern."
     },
     {
