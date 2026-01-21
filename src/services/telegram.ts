@@ -107,6 +107,7 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
             text: msg.text ?? "",
             timestamp: new Date(msg.date * 1000),
             isOutgoing: msg.out ?? false,
+            media: extractMedia(msg),
           };
           _messageCallback?.(message, chatId);
         },
@@ -150,6 +151,7 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
           text: m.message ?? "",
           timestamp: new Date(m.date * 1000),
           isOutgoing: m.out ?? false,
+          media: extractMedia(m),
         };
       }).reverse();
     },

@@ -167,8 +167,8 @@
         "Messages without media have media: undefined",
         "Typecheck passes"
       ],
-      "passes": false,
-      "notes": "File: src/services/telegram.ts - update getMessages or similar"
+      "passes": true,
+      "notes": "File: src/services/telegram.ts - added extractMedia() call to getMessages and onNewMessage handler"
     },
     {
       "id": "US-012",
