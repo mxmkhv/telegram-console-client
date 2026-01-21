@@ -13,7 +13,7 @@
         "Extend Message interface with optional media?: MediaAttachment field",
         "Typecheck passes: bun run typecheck"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "File: src/types/index.ts"
     },
     {
@@ -144,16 +144,18 @@
       "acceptanceCriteria": [
         "Create src/components/MediaPreview.tsx",
         "Checks cache synchronously on render (no flicker on cache hit)",
+        "200ms debounce before starting download (prevents spam on rapid j/k navigation)",
+        "Cancel pending debounced download when selection changes (cleanup function)",
         "Shows 'Loading preview...' during download",
         "Downloads via getMediaBuffer with deduplication",
         "Renders via renderInlinePreview (height: 5)",
         "Caches rendered preview via setCachedInlinePreview",
         "Memoized with React.memo()",
-        "Handles cleanup on unmount (cancelled flag)",
+        "Handles cleanup on unmount (cancelled flag + clearTimeout)",
         "Typecheck passes"
       ],
       "passes": false,
-      "notes": "Only shown when message is selected and media is not animated"
+      "notes": "Scope: ALL non-animated media (photos, static stickers, GIF thumbnails). Uses useInput per component pattern."
     },
     {
       "id": "US-011",

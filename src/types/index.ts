@@ -1,3 +1,5 @@
+import type { Api } from "telegram";
+
 export type LogLevel = "quiet" | "info" | "verbose";
 export type SessionMode = "persistent" | "ephemeral";
 export type AuthMethod = "qr" | "phone";
@@ -15,6 +17,20 @@ export type FocusedPanel = "header" | "chatList" | "messages" | "input";
 export type CurrentView = "chat" | "settings";
 export type LogoutMode = "session" | "full";
 
+export type MediaType = "photo" | "sticker" | "gif" | "video" | "document";
+
+export interface MediaAttachment {
+  type: MediaType;
+  fileSize?: number;
+  width?: number;
+  height?: number;
+  mimeType?: string;
+  emoji?: string;           // for stickers
+  isAnimated?: boolean;     // TGS/video stickers
+  fileName?: string;
+  _message: Api.Message;    // GramJS reference for download
+}
+
 export interface Chat {
   id: string;
   title: string;
@@ -30,6 +46,7 @@ export interface Message {
   text: string;
   timestamp: Date;
   isOutgoing: boolean;
+  media?: MediaAttachment;
 }
 
 export interface TelegramService {
