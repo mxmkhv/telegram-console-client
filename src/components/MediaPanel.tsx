@@ -78,7 +78,7 @@ export function MediaPanel({ message, panelWidth, downloadMedia, onClose, isFocu
         <Text bold color="blue">Media</Text>
       </Box>
 
-      <Box flexGrow={1} justifyContent="center" alignItems="center">
+      <Box flexDirection="column">
         {loading && <Text dimColor>Loading...</Text>}
         {error && <Text color="red">⚠ {error}</Text>}
         {image && <Text>{image}</Text>}
