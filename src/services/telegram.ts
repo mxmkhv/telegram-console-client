@@ -183,6 +183,12 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
         }
       };
     },
+
+    async downloadMedia(message: Message): Promise<Buffer | undefined> {
+      if (!message.media?._message) return undefined;
+      const buffer = await client.downloadMedia(message.media._message, {});
+      return buffer as Buffer;
+    },
   };
 }
 

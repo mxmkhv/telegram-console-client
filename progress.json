@@ -42,7 +42,7 @@
         "Uses client.downloadMedia() to fetch buffer",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "File: src/services/telegram.ts"
     },
     {

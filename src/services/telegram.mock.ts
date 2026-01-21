@@ -117,5 +117,10 @@ export function createMockTelegramService(): TelegramService {
         }
       };
     },
+
+    async downloadMedia(_message: Message): Promise<Buffer | undefined> {
+      // Mock: return undefined since we don't have real media in mock
+      return undefined;
+    },
   };
 }

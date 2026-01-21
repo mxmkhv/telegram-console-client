@@ -58,4 +58,5 @@ export interface TelegramService {
   sendMessage(chatId: string, text: string): Promise<Message>;
   onConnectionStateChange(callback: (state: ConnectionState) => void): () => void;
   onNewMessage(callback: (message: Message, chatId: string) => void): () => void;
+  downloadMedia(message: Message): Promise<Buffer | undefined>;
 }
