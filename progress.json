@@ -213,7 +213,7 @@
         "Handles keyboard: Enter or Escape closes panel",
         "Typecheck passes"
       ],
-      "passes": false,
+      "passes": true,
       "notes": "Panel takes ~40% width, positioned on right side"
     },
     {
