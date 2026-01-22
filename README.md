@@ -6,6 +6,10 @@
 
 A terminal-based Telegram client for technical users.
 
+<p align="center">
+  <img src="screenshot.png" alt="Screenshot" width="800">
+</p>
+
 ## Installation
 
 ```bash
@@ -79,12 +83,12 @@ Config file location: `~/.config/telegram-console/config.json`
 
 ### Environment Variables
 
-| Variable          | Description                   |
-| ----------------- | ----------------------------- |
-| `TG_API_ID`       | Telegram API ID               |
-| `TG_API_HASH`     | Telegram API Hash             |
-| `TG_SESSION_MODE` | `persistent` or `ephemeral`   |
-| `TG_AUTH_METHOD`  | `qr` or `phone`               |
+| Variable          | Description                 |
+| ----------------- | --------------------------- |
+| `TG_API_ID`       | Telegram API ID             |
+| `TG_API_HASH`     | Telegram API Hash           |
+| `TG_SESSION_MODE` | `persistent` or `ephemeral` |
+| `TG_AUTH_METHOD`  | `qr` or `phone`             |
 
 ## Contributing
 
