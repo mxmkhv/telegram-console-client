@@ -1,6 +1,6 @@
 import { memo, useMemo, type Dispatch } from "react";
 import { Box, Text, useInput } from "ink";
-import type { Message } from "../types";
+import type { Message, MessageLayout } from "../types";
 import { formatMediaMetadata } from '../services/imageRenderer.js';
 import type { AppAction } from '../state/reducer.js';
 
@@ -15,6 +15,8 @@ interface MessageViewProps {
   canLoadOlder?: boolean;
   width: number;
   dispatch: Dispatch<AppAction>;
+  messageLayout: MessageLayout;
+  isGroupChat: boolean;
 }
 
 function formatTime(date: Date): string {
@@ -30,7 +32,14 @@ function getMessageLineCount(msg: Message, _isSelected: boolean): number {
   return msg.text.split("\n").length;
 }
 
-function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch }: MessageViewProps) {
+function getBubbleMessageLineCount(msg: Message, isGroupChat: boolean): number {
+  const textLines = msg.text ? msg.text.split("\n").length : 0;
+  const hasName = isGroupChat && !msg.isOutgoing;
+  // name line (if group + not outgoing) + text lines + timestamp line + blank line
+  return (hasName ? 1 : 0) + Math.max(1, textLines) + 1 + 1;
+}
+
+function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, messageLayout, isGroupChat }: MessageViewProps) {
   // Handle Enter key to open media panel
   useInput((_input, key) => {
     if (key.return) {
@@ -45,9 +54,12 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
   const messageLineCounts = useMemo(() => {
     return chatMessages.map((msg, index) => {
       const isSelected = index === selectedIndex && isFocused;
+      if (messageLayout === "bubble") {
+        return getBubbleMessageLineCount(msg, isGroupChat);
+      }
       return getMessageLineCount(msg, isSelected);
     });
-  }, [chatMessages, selectedIndex, isFocused]);
+  }, [chatMessages, selectedIndex, isFocused, messageLayout, isGroupChat]);
 
   const totalLines = useMemo(() => {
     return messageLineCounts.reduce((sum, count) => sum + count, 0);
@@ -118,6 +130,63 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
   // Get visible messages
   const visibleMessages = chatMessages.slice(startIndex, endIndex);
 
+  // Render a single message in bubble layout
+  const renderBubbleMessage = (msg: Message, isSelected: boolean, actualIndex: number) => {
+    const showName = isGroupChat && !msg.isOutgoing;
+    const textLines = msg.text ? msg.text.split("\n") : [""];
+    const mediaInfo = msg.media ? formatMediaMetadata(msg.media, msg.id) : "";
+    const viewHint = isSelected && msg.media ? " [Enter to view]" : "";
+    const timestamp = formatTime(msg.timestamp);
+
+    // Calculate padding for right-aligned messages
+    const contentWidth = width - 4; // Account for borders and padding
+
+    return (
+      <Box key={msg.id} flexDirection="column" marginBottom={1}>
+        {/* Sender name (groups only, others only) */}
+        {showName && (
+          <Text dimColor>{msg.senderName}</Text>
+        )}
+
+        {/* Message content */}
+        {textLines.map((line, lineIndex) => {
+          const isFirstLine = lineIndex === 0;
+          const content = isFirstLine && mediaInfo
+            ? `${line} ${mediaInfo}${viewHint}`.trim() || `${mediaInfo}${viewHint}`
+            : line;
+
+          if (msg.isOutgoing) {
+            // Right-aligned, blue
+            const padding = Math.max(0, contentWidth - content.length);
+            return (
+              <Text key={lineIndex} inverse={isSelected}>
+                {" ".repeat(padding)}
+                <Text color="blue">{content}</Text>
+              </Text>
+            );
+          } else {
+            // Left-aligned, dim
+            return (
+              <Text key={lineIndex} inverse={isSelected} dimColor>
+                {content}
+              </Text>
+            );
+          }
+        })}
+
+        {/* Timestamp */}
+        {msg.isOutgoing ? (
+          <Text dimColor>
+            {" ".repeat(Math.max(0, contentWidth - timestamp.length))}
+            {timestamp}
+          </Text>
+        ) : (
+          <Text dimColor>{timestamp}</Text>
+        )}
+      </Box>
+    );
+  };
+
   if (!selectedChatTitle) {
     return (
       <Box flexDirection="column" borderStyle="round" borderColor={isFocused ? "cyan" : "blue"} width={width} height={VISIBLE_LINES + 3} justifyContent="center" alignItems="center">
@@ -138,40 +207,47 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
         {isLoadingOlder && <Text dimColor>  Loading older messages...</Text>}
         {canLoadOlder && !isLoadingOlder && <Text color="yellow">  ↑ Press Enter to load older messages</Text>}
         {showScrollUp && !isLoadingOlder && !canLoadOlder && <Text dimColor>  ↑ {startIndex} earlier</Text>}
-        {visibleMessages.map((msg, i) => {
-          const actualIndex = startIndex + i;
-          const isSelected = actualIndex === selectedIndex && isFocused;
-          const senderName = msg.isOutgoing ? "You" : msg.senderName;
-          // Replace spaces in sender name with non-breaking spaces to prevent wrapping
-          const nbspSenderName = senderName.replace(/ /g, "\u00A0");
-          // Split message into lines to handle newlines properly
-          const lines = msg.text.split("\n");
-          // Format media metadata for inline display
-          const mediaInfo = msg.media ? ` ${formatMediaMetadata(msg.media, msg.id)}` : '';
-          const viewHint = isSelected && msg.media ? ' [Press enter to view]' : '';
+        {messageLayout === "bubble" ? (
+          // Bubble layout rendering
+          visibleMessages.map((msg, i) => {
+            const actualIndex = startIndex + i;
+            const isSelected = actualIndex === selectedIndex && isFocused;
+            return renderBubbleMessage(msg, isSelected, actualIndex);
+          })
+        ) : (
+          // Classic layout rendering (existing code)
+          visibleMessages.map((msg, i) => {
+            const actualIndex = startIndex + i;
+            const isSelected = actualIndex === selectedIndex && isFocused;
+            const senderName = msg.isOutgoing ? "You" : msg.senderName;
+            const nbspSenderName = senderName.replace(/ /g, "\u00A0");
+            const lines = msg.text.split("\n");
+            const mediaInfo = msg.media ? ` ${formatMediaMetadata(msg.media, msg.id)}` : '';
+            const viewHint = isSelected && msg.media ? ' [Press enter to view]' : '';
 
-          return (
-            <Box key={msg.id} flexDirection="column">
-              {lines.map((line, lineIndex) => (
-                <Box key={lineIndex}>
-                  <Text wrap="wrap">
-                    {lineIndex === 0 ? (
-                      <>
-                        <Text inverse={isSelected} dimColor={!isSelected}>[{formatTime(msg.timestamp)}]{"\u00A0"}</Text>
-                        <Text inverse={isSelected} bold color={msg.isOutgoing ? "cyan" : "white"}>{nbspSenderName}:</Text>
-                        <Text inverse={isSelected} dimColor>{mediaInfo}</Text>
-                        <Text inverse={isSelected}> {line}</Text>
-                        <Text inverse={isSelected} color="yellow">{viewHint}</Text>
-                      </>
-                    ) : (
-                      <Text inverse={isSelected} dimColor={!isSelected}>{"        "}{line}</Text>
-                    )}
-                  </Text>
-                </Box>
-              ))}
-            </Box>
-          );
-        })}
+            return (
+              <Box key={msg.id} flexDirection="column">
+                {lines.map((line, lineIndex) => (
+                  <Box key={lineIndex}>
+                    <Text wrap="wrap">
+                      {lineIndex === 0 ? (
+                        <>
+                          <Text inverse={isSelected} dimColor={!isSelected}>[{formatTime(msg.timestamp)}]{"\u00A0"}</Text>
+                          <Text inverse={isSelected} bold color={msg.isOutgoing ? "cyan" : "white"}>{nbspSenderName}:</Text>
+                          <Text inverse={isSelected} dimColor>{mediaInfo}</Text>
+                          <Text inverse={isSelected}> {line}</Text>
+                          <Text inverse={isSelected} color="yellow">{viewHint}</Text>
+                        </>
+                      ) : (
+                        <Text inverse={isSelected} dimColor={!isSelected}>{"        "}{line}</Text>
+                      )}
+                    </Text>
+                  </Box>
+                ))}
+              </Box>
+            );
+          })
+        )}
         {showScrollDown && <Text dimColor>  ↓ {chatMessages.length - endIndex} more</Text>}
       </Box>
     </Box>
