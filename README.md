@@ -10,8 +10,6 @@ A terminal-based Telegram client for technical users.
 
 ```bash
 npm install -g telegram-console
-# or
-bun install -g telegram-console
 ```
 
 ## Setup
@@ -44,13 +42,6 @@ bun install -g telegram-console
 telegram-console
 ```
 
-### Development Mode
-
-```bash
-# Run with mock data (no Telegram connection required)
-telegram-console --mock
-```
-
 ### Keyboard Shortcuts
 
 | Key    | Action                           |
@@ -72,55 +63,6 @@ telegram-console --mock
 - Session persistence
 - QR code + phone code authentication
 
-## Development
-
-```bash
-# Install dependencies
-bun install
-
-# Run in dev mode
-bun run dev
-
-# Run with mock data
-bun run dev -- --mock
-
-# Run tests
-bun test
-
-# Type check
-bun run typecheck
-
-# Lint
-bun run lint
-
-# Build
-bun run build
-```
-
-## Project Structure
-
-```
-src/
-├── index.tsx           # Entry point
-├── app.tsx             # Main App component
-├── components/
-│   ├── ChatList.tsx    # Chat list panel
-│   ├── MessageView.tsx # Message view panel
-│   ├── InputBar.tsx    # Message input
-│   ├── StatusBar.tsx   # Status footer
-│   └── Setup/          # Setup flow components
-├── services/
-│   ├── telegram.ts     # GramJS wrapper
-│   └── telegram.mock.ts # Mock service for testing
-├── state/
-│   ├── context.tsx     # React context
-│   └── reducer.ts      # State reducer
-├── config/
-│   └── index.ts        # Config loading/saving
-└── types/
-    └── index.ts        # TypeScript types
-```
-
 ## Configuration
 
 Config file location: `~/.config/telegram-console/config.json`
@@ -132,8 +74,11 @@ Config file location: `~/.config/telegram-console/config.json`
 | `TG_API_ID`       | Telegram API ID               |
 | `TG_API_HASH`     | Telegram API Hash             |
 | `TG_SESSION_MODE` | `persistent` or `ephemeral`   |
-| `TG_LOG_LEVEL`    | `quiet`, `info`, or `verbose` |
 | `TG_AUTH_METHOD`  | `qr` or `phone`               |
+
+## Contributing
+
+Contributions are welcome! Feel free to open issues and pull requests.
 
 ## License
 
