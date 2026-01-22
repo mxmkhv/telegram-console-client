@@ -33,6 +33,12 @@ export interface MediaAttachment {
   _message: Api.Message;    // GramJS reference for download
 }
 
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  hasUserReacted: boolean;
+}
+
 export interface Chat {
   id: string;
   title: string;
@@ -49,6 +55,7 @@ export interface Message {
   timestamp: Date;
   isOutgoing: boolean;
   media?: MediaAttachment;
+  reactions?: MessageReaction[];
 }
 
 export interface TelegramService {
