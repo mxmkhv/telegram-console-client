@@ -74,10 +74,10 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
   const [reactionModalOpen, setReactionModalOpen] = useState(false);
   const [flashState, setFlashState] = useState<{ messageId: number; color: string } | null>(null);
 
-  // Handle Shift+Enter for reactions and Enter for media panel
-  useInput((_input, key) => {
-    // Shift+Enter for reactions
-    if (key.return && key.shift) {
+  // Handle 'r' key for reactions and Enter for media panel
+  useInput((input, key) => {
+    // 'r' key for reactions
+    if (input === 'r' || input === 'R') {
       const selectedMessage = chatMessages[selectedIndex];
       if (selectedMessage) {
         if (hasUserReaction(selectedMessage.reactions)) {
@@ -286,10 +286,8 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
     const viewHint = isSelected && msg.media ? " [Enter]" : "";
     const timestamp = `[${formatTime(msg.timestamp)}]`;
     const senderColor = getSenderColor(msg.senderId);
-    const userReacted = hasUserReaction(msg.reactions);
     const isFlashing = flashState?.messageId === msg.id;
     const flashColor = isFlashing ? flashState.color : undefined;
-    const bgColor = flashColor ?? (userReacted && !isSelected ? "gray" : undefined);
 
     // Calculate padding for right-aligned messages
     const contentWidth = width - 4; // Account for borders and padding
@@ -320,7 +318,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
             // Right-aligned, blue (user's messages)
             const padding = Math.max(0, contentWidth - fullContent.length);
             return (
-              <Text key={lineIndex} inverse={isSelected} backgroundColor={bgColor}>
+              <Text key={lineIndex} inverse={isSelected} backgroundColor={flashColor}>
                 {" ".repeat(padding)}
                 <Text color="blue">{lineContent}</Text>
                 {isLastLine && <Text dimColor> {timestamp}</Text>}
@@ -330,7 +328,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
           } else {
             // Left-aligned, normal text (not dim for better readability)
             return (
-              <Text key={lineIndex} inverse={isSelected} backgroundColor={bgColor}>
+              <Text key={lineIndex} inverse={isSelected} backgroundColor={flashColor}>
                 <Text>{lineContent}</Text>
                 {isLastLine && <Text dimColor> {timestamp}</Text>}
                 {isLastLine && <Text dimColor>{formatReactions(msg.reactions)}</Text>}
@@ -413,14 +411,11 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
             const lines = msg.text.split("\n");
             const mediaInfo = msg.media ? ` ${formatMediaMetadata(msg.media, msg.id)}` : '';
             const viewHint = isSelected && msg.media ? ' [Press enter to view]' : '';
-            const userReacted = hasUserReaction(msg.reactions);
-            const bgColor = flashColor ?? (userReacted && !isSelected ? "gray" : undefined);
-
             return (
               <Box key={msg.id} flexDirection="column">
                 {lines.map((line, lineIndex) => (
                   <Box key={lineIndex}>
-                    <Text wrap="wrap" backgroundColor={bgColor}>
+                    <Text wrap="wrap" backgroundColor={flashColor}>
                       {lineIndex === 0 ? (
                         <>
                           <Text inverse={isSelected} dimColor={!isSelected}>[{formatTime(msg.timestamp)}]{"\u00A0"}</Text>
