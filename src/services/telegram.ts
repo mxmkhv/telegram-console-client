@@ -196,6 +196,14 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
       const buffer = await client.downloadMedia(message.media._message, {});
       return buffer as Buffer;
     },
+
+    async markAsRead(chatId: string, maxMessageId?: number): Promise<boolean> {
+      try {
+        return await client.markAsRead(chatId, maxMessageId ? [maxMessageId] : undefined);
+      } catch {
+        return false;
+      }
+    },
   };
 }
 
