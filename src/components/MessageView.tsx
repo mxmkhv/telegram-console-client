@@ -1,8 +1,10 @@
-import { memo, useMemo, type Dispatch } from "react";
+import { memo, useMemo, useState, useCallback, type Dispatch } from "react";
 import { Box, Text, useInput } from "ink";
 import type { Message, MessageLayout } from "../types";
 import { formatMediaMetadata } from '../services/imageRenderer.js';
 import type { AppAction } from '../state/reducer.js';
+import { ReactionPicker, QUICK_EMOJIS } from "./ReactionPicker";
+import { ReactionModal } from "./ReactionModal";
 
 const VISIBLE_LINES = 20;
 
@@ -63,15 +65,67 @@ const SENDER_COLORS = [
 ] as const;
 
 function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, messageLayout, isGroupChat }: MessageViewProps) {
-  // Handle Enter key to open media panel
+  // Reaction picker state
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
+  const [reactionPickerIndex, setReactionPickerIndex] = useState(0);
+  const [reactionModalOpen, setReactionModalOpen] = useState(false);
+  const [flashState, setFlashState] = useState<{ messageId: number; color: string } | null>(null);
+
+  // Handle Shift+Enter for reactions and Enter for media panel
   useInput((_input, key) => {
+    // Shift+Enter for reactions
+    if (key.return && key.shift) {
+      const selectedMessage = chatMessages[selectedIndex];
+      if (selectedMessage) {
+        if (hasUserReaction(selectedMessage.reactions)) {
+          handleRemoveReaction(selectedMessage.id);
+        } else {
+          setReactionPickerOpen(true);
+          setReactionPickerIndex(0);
+        }
+      }
+      return;
+    }
+
+    // Existing Enter handling for media panel
     if (key.return) {
       const selectedMessage = chatMessages[selectedIndex];
       if (selectedMessage?.media) {
         dispatch({ type: 'OPEN_MEDIA_PANEL', payload: { messageId: selectedMessage.id } });
       }
     }
-  }, { isActive: isFocused });
+  }, { isActive: isFocused && !reactionPickerOpen && !reactionModalOpen });
+
+  // Picker navigation (left/right arrows)
+  useInput(
+    (_input, key) => {
+      if (key.leftArrow) {
+        setReactionPickerIndex((i) => Math.max(0, i - 1));
+      } else if (key.rightArrow) {
+        setReactionPickerIndex((i) => Math.min(QUICK_EMOJIS.length, i + 1));
+      }
+    },
+    { isActive: reactionPickerOpen && !reactionModalOpen }
+  );
+
+  // Reaction handlers
+  const handleSendReaction = useCallback((emoji: string) => {
+    const messageId = chatMessages[selectedIndex]?.id;
+    if (!messageId) return;
+
+    setReactionPickerOpen(false);
+    setReactionModalOpen(false);
+
+    // Optimistic update will be done in Task 9
+    // For now just show the flash
+    setFlashState({ messageId, color: "green" });
+    setTimeout(() => setFlashState(null), 200);
+  }, [chatMessages, selectedIndex]);
+
+  const handleRemoveReaction = useCallback((messageId: number) => {
+    setFlashState({ messageId, color: "yellow" });
+    setTimeout(() => setFlashState(null), 200);
+  }, []);
 
   // Build color map: assign colors to senders in order of first appearance
   const senderColorMap = useMemo(() => {
@@ -180,6 +234,9 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
     const timestamp = `[${formatTime(msg.timestamp)}]`;
     const senderColor = getSenderColor(msg.senderId);
     const userReacted = hasUserReaction(msg.reactions);
+    const isFlashing = flashState?.messageId === msg.id;
+    const flashColor = isFlashing ? flashState.color : undefined;
+    const bgColor = flashColor ?? (userReacted && !isSelected ? "gray" : undefined);
 
     // Calculate padding for right-aligned messages
     const contentWidth = width - 4; // Account for borders and padding
@@ -210,7 +267,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
             // Right-aligned, blue (user's messages)
             const padding = Math.max(0, contentWidth - fullContent.length);
             return (
-              <Text key={lineIndex} inverse={isSelected} backgroundColor={userReacted && !isSelected ? "gray" : undefined}>
+              <Text key={lineIndex} inverse={isSelected} backgroundColor={bgColor}>
                 {" ".repeat(padding)}
                 <Text color="blue">{lineContent}</Text>
                 {isLastLine && <Text dimColor> {timestamp}</Text>}
@@ -220,7 +277,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
           } else {
             // Left-aligned, normal text (not dim for better readability)
             return (
-              <Text key={lineIndex} inverse={isSelected} backgroundColor={userReacted && !isSelected ? "gray" : undefined}>
+              <Text key={lineIndex} inverse={isSelected} backgroundColor={bgColor}>
                 <Text>{lineContent}</Text>
                 {isLastLine && <Text dimColor> {timestamp}</Text>}
                 {isLastLine && <Text dimColor>{formatReactions(msg.reactions)}</Text>}
@@ -257,6 +314,21 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
           visibleMessages.map((msg, i) => {
             const actualIndex = startIndex + i;
             const isSelected = actualIndex === selectedIndex && isFocused;
+            if (reactionPickerOpen && actualIndex === selectedIndex) {
+              return (
+                <ReactionPicker
+                  key={msg.id}
+                  emojis={QUICK_EMOJIS}
+                  selectedIndex={reactionPickerIndex}
+                  onSelect={handleSendReaction}
+                  onOpenModal={() => {
+                    setReactionPickerOpen(false);
+                    setReactionModalOpen(true);
+                  }}
+                  onCancel={() => setReactionPickerOpen(false)}
+                />
+              );
+            }
             return renderBubbleMessage(msg, isSelected, actualIndex);
           })
         ) : (
@@ -264,18 +336,38 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
           visibleMessages.map((msg, i) => {
             const actualIndex = startIndex + i;
             const isSelected = actualIndex === selectedIndex && isFocused;
+            const isFlashing = flashState?.messageId === msg.id;
+            const flashColor = isFlashing ? flashState.color : undefined;
+
+            if (reactionPickerOpen && actualIndex === selectedIndex) {
+              return (
+                <ReactionPicker
+                  key={msg.id}
+                  emojis={QUICK_EMOJIS}
+                  selectedIndex={reactionPickerIndex}
+                  onSelect={handleSendReaction}
+                  onOpenModal={() => {
+                    setReactionPickerOpen(false);
+                    setReactionModalOpen(true);
+                  }}
+                  onCancel={() => setReactionPickerOpen(false)}
+                />
+              );
+            }
+
             const senderName = msg.isOutgoing ? "You" : msg.senderName;
             const nbspSenderName = senderName.replace(/ /g, "\u00A0");
             const lines = msg.text.split("\n");
             const mediaInfo = msg.media ? ` ${formatMediaMetadata(msg.media, msg.id)}` : '';
             const viewHint = isSelected && msg.media ? ' [Press enter to view]' : '';
             const userReacted = hasUserReaction(msg.reactions);
+            const bgColor = flashColor ?? (userReacted && !isSelected ? "gray" : undefined);
 
             return (
               <Box key={msg.id} flexDirection="column">
                 {lines.map((line, lineIndex) => (
                   <Box key={lineIndex}>
-                    <Text wrap="wrap" backgroundColor={userReacted && !isSelected ? "gray" : undefined}>
+                    <Text wrap="wrap" backgroundColor={bgColor}>
                       {lineIndex === 0 ? (
                         <>
                           <Text inverse={isSelected} dimColor={!isSelected}>[{formatTime(msg.timestamp)}]{"\u00A0"}</Text>
@@ -297,6 +389,14 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
         )}
         {showScrollDown && <Text dimColor>  ↓ {chatMessages.length - endIndex} more</Text>}
       </Box>
+      {reactionModalOpen && (
+        <Box position="absolute" marginTop={5} marginLeft={10}>
+          <ReactionModal
+            onSelect={handleSendReaction}
+            onCancel={() => setReactionModalOpen(false)}
+          />
+        </Box>
+      )}
     </Box>
   );
 }
