@@ -92,6 +92,7 @@ export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
         sessionPersistence: "persistent",
         logLevel: "info",
         authMethod: "qr",
+        messageLayout: "classic",
       };
 
       // Small delay to show success message

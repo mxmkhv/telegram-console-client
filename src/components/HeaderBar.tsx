@@ -7,7 +7,8 @@ interface HeaderBarProps {
 }
 
 function HeaderBarInner({ isFocused, selectedButton }: HeaderBarProps) {
-  const settingsStyle = {
+  // TODO: finish bubble layout
+  const _settingsStyle = {
     bold: isFocused && selectedButton === "settings",
     color: isFocused && selectedButton === "settings" ? "cyan" : undefined,
     dimColor: !isFocused || selectedButton !== "settings",

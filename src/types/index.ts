@@ -33,6 +33,12 @@ export interface MediaAttachment {
   _message: Api.Message;    // GramJS reference for download
 }
 
+export interface MessageReaction {
+  emoji: string;
+  count: number;
+  hasUserReacted: boolean;
+}
+
 export interface Chat {
   id: string;
   title: string;
@@ -49,6 +55,7 @@ export interface Message {
   timestamp: Date;
   isOutgoing: boolean;
   media?: MediaAttachment;
+  reactions?: MessageReaction[];
 }
 
 export interface TelegramService {
@@ -59,6 +66,8 @@ export interface TelegramService {
   getMessages(chatId: string, limit?: number, offsetId?: number): Promise<Message[]>;
   sendMessage(chatId: string, text: string): Promise<Message>;
   markAsRead(chatId: string, maxMessageId?: number): Promise<boolean>;
+  sendReaction(chatId: string, messageId: number, emoji: string): Promise<boolean>;
+  removeReaction(chatId: string, messageId: number): Promise<boolean>;
   onConnectionStateChange(callback: (state: ConnectionState) => void): () => void;
   onNewMessage(callback: (message: Message, chatId: string) => void): () => void;
   downloadMedia(message: Message): Promise<Buffer | undefined>;

@@ -59,6 +59,21 @@ function extractMedia(msg: Api.Message): MediaAttachment | undefined {
   return undefined;
 }
 
+function extractReactions(msg: Api.Message): Message["reactions"] {
+  const reactions = msg.reactions;
+  if (!reactions?.results) return undefined;
+
+  return reactions.results
+    .filter((r): r is Api.ReactionCount & { reaction: Api.ReactionEmoji } =>
+      r.reaction?.className === "ReactionEmoji"
+    )
+    .map((r) => ({
+      emoji: r.reaction.emoticon,
+      count: r.count,
+      hasUserReacted: r.chosenOrder !== undefined,
+    }));
+}
+
 export interface TelegramServiceOptions {
   apiId: number | string;
   apiHash: string;
@@ -115,6 +130,7 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
               timestamp: new Date(msg.date * 1000),
               isOutgoing: msg.out ?? false,
               media: extractMedia(msg),
+              reactions: extractReactions(msg),
             };
             _messageCallback?.(message, chatId);
           },
@@ -160,6 +176,7 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
           timestamp: new Date(m.date * 1000),
           isOutgoing: m.out ?? false,
           media: extractMedia(m),
+          reactions: extractReactions(m),
         };
       }).reverse();
     },
@@ -203,6 +220,37 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
     async markAsRead(chatId: string, maxMessageId?: number): Promise<boolean> {
       try {
         return await client.markAsRead(chatId, maxMessageId ? [maxMessageId] : undefined);
+      } catch {
+        return false;
+      }
+    },
+
+    async sendReaction(chatId: string, messageId: number, emoji: string): Promise<boolean> {
+      try {
+        await client.invoke(
+          new Api.messages.SendReaction({
+            peer: chatId,
+            msgId: messageId,
+            reaction: [new Api.ReactionEmoji({ emoticon: emoji })],
+            addToRecent: true,
+          })
+        );
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    async removeReaction(chatId: string, messageId: number): Promise<boolean> {
+      try {
+        await client.invoke(
+          new Api.messages.SendReaction({
+            peer: chatId,
+            msgId: messageId,
+            reaction: [],
+          })
+        );
+        return true;
       } catch {
         return false;
       }
