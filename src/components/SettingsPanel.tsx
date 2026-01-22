@@ -62,8 +62,8 @@ function SettingsPanelInner() {
         )}
       </Box>
       <Box flexDirection="column" marginLeft={4} marginY={1}>
-        <Text><Text dimColor>[14:32] </Text><Text>Alice:</Text> Hello!</Text>
-        <Text><Text dimColor>[14:33] </Text><Text color="cyan">You:</Text> Hi there</Text>
+        <Text><Text dimColor>[14:32] </Text><Text color="green">Alice:</Text> Hello!</Text>
+        <Text><Text dimColor>[14:33] </Text><Text color="blue">You:</Text> Hi there</Text>
       </Box>
 
       {/* Bubble Option */}
@@ -81,7 +81,7 @@ function SettingsPanelInner() {
       <Box flexDirection="column" marginLeft={4} marginY={1}>
         <Text><Text color="green">Alice</Text></Text>
         <Text>Hello! <Text dimColor>[14:32]</Text></Text>
-        <Text>                    <Text color="cyan">Hi there</Text> <Text dimColor>[14:33]</Text></Text>
+        <Text>                    <Text color="blue">Hi there</Text> <Text dimColor>[14:33]</Text></Text>
       </Box>
 
       <Text> </Text>

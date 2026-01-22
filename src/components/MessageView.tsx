@@ -179,12 +179,12 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
           const fullContent = lineContent + suffix;
 
           if (msg.isOutgoing) {
-            // Right-aligned, cyan (better visibility than blue)
+            // Right-aligned, blue (user's messages)
             const padding = Math.max(0, contentWidth - fullContent.length);
             return (
               <Text key={lineIndex} inverse={isSelected}>
                 {" ".repeat(padding)}
-                <Text color="cyan">{lineContent}</Text>
+                <Text color="blue">{lineContent}</Text>
                 {isLastLine && <Text dimColor> {timestamp}</Text>}
               </Text>
             );
@@ -248,7 +248,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
                       {lineIndex === 0 ? (
                         <>
                           <Text inverse={isSelected} dimColor={!isSelected}>[{formatTime(msg.timestamp)}]{"\u00A0"}</Text>
-                          <Text inverse={isSelected} bold color={msg.isOutgoing ? "cyan" : getSenderColor(msg.senderName)}>{nbspSenderName}:</Text>
+                          <Text inverse={isSelected} bold color={msg.isOutgoing ? "blue" : getSenderColor(msg.senderName)}>{nbspSenderName}:</Text>
                           <Text inverse={isSelected} dimColor>{mediaInfo}</Text>
                           <Text inverse={isSelected}> {line}</Text>
                           <Text inverse={isSelected} color="yellow">{viewHint}</Text>
