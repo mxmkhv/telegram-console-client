@@ -80,8 +80,8 @@ export const MediaPreview = memo(function MediaPreview({ message, downloadMedia 
   if (!previewResult) return null;
 
   // Box size: actual image dimensions + border (2 chars each side)
-  const boxWidth = previewResult.width + 2;
-  const boxHeight = previewResult.height + 2;
+  const _boxWidth = previewResult.width + 2;
+  const _boxHeight = previewResult.height + 2;
 
   return (
     <Box borderStyle="round" flexDirection="column">

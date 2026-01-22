@@ -380,7 +380,7 @@ export function App({ useMock = false }: AppProps) {
   const [telegramService, setTelegramService] = useState<TelegramService | null>(null);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [isReturningUser, setIsReturningUser] = useState(false);
+  const [_isReturningUser, setIsReturningUser] = useState(false);
   const [userName, setUserName] = useState("");
 
   useEffect(() => {

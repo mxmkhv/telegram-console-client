@@ -1,8 +1,9 @@
-import { describe, it, expect, mock, beforeEach } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { render } from "ink-testing-library";
 import React from "react";
 import { MediaPanel } from "./MediaPanel";
 import type { Message, MediaAttachment } from "../types/index.js";
+import type { Api } from "telegram";
 
 // Mock the media services to avoid actual media loading
 mock.module("../services/mediaCache.js", () => ({
@@ -19,7 +20,7 @@ const mockMedia: MediaAttachment = {
   width: 100,
   height: 100,
   fileSize: 1024,
-  _message: {} as any,
+  _message: {} as Api.Message,
 };
 
 const mockMessage: Message = {
