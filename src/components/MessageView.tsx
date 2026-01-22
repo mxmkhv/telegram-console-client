@@ -53,12 +53,6 @@ const SENDER_COLORS = [
   "redBright",
 ] as const;
 
-// Parse senderId as number, mod by color count
-function getSenderColor(senderId: string): typeof SENDER_COLORS[number] {
-  const num = parseInt(senderId, 10) || 0;
-  return SENDER_COLORS[Math.abs(num) % SENDER_COLORS.length]!;
-}
-
 function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, messageLayout, isGroupChat }: MessageViewProps) {
   // Handle Enter key to open media panel
   useInput((_input, key) => {
@@ -69,6 +63,24 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
       }
     }
   }, { isActive: isFocused });
+
+  // Build color map: assign colors to senders in order of first appearance
+  const senderColorMap = useMemo(() => {
+    const map = new Map<string, typeof SENDER_COLORS[number]>();
+    let colorIndex = 0;
+    for (const msg of chatMessages) {
+      if (!msg.isOutgoing && !map.has(msg.senderId)) {
+        map.set(msg.senderId, SENDER_COLORS[colorIndex % SENDER_COLORS.length]!);
+        colorIndex++;
+      }
+    }
+    return map;
+  }, [chatMessages]);
+
+  // Get color for a sender
+  const getSenderColor = (senderId: string) => {
+    return senderColorMap.get(senderId) ?? "white";
+  };
 
   // Calculate line count for each message
   const messageLineCounts = useMemo(() => {
