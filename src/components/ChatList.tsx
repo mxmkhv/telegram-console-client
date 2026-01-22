@@ -39,7 +39,7 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
   const visibleChats = chats.slice(adjustedStart, adjustedEnd);
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor={isFocused ? "cyan" : undefined} width={35} height={VISIBLE_ITEMS + 3}>
+    <Box flexDirection="column" borderStyle="round" borderColor={isFocused ? "cyan" : "blue"} width={35} height={VISIBLE_ITEMS + 3}>
       <Box paddingX={1} borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false}>
         <Text bold color={isFocused ? "cyan" : undefined}>Chats</Text>
         {chats.length > VISIBLE_ITEMS && (
@@ -56,12 +56,16 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
 
           return (
             <Box key={chat.id}>
+              {hasUnread ? (
+                <Text color="cyan" inverse={isSelected}>● </Text>
+              ) : (
+                <Text inverse={isSelected}>  </Text>
+              )}
               <Text
                 inverse={isSelected}
                 bold={hasUnread || isActive}
                 color={isActive ? "cyan" : undefined}
               >
-                {hasUnread ? "● " : "  "}
                 {chat.title.slice(0, 28)}
                 {hasUnread ? ` (${chat.unreadCount})` : ""}
               </Text>
