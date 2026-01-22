@@ -37,6 +37,8 @@
   "dependencies": {
     "conf": "^15.0.2",
     "ink": "^6.6.0",
+    "ink-big-text": "^2.0.0",
+    "ink-gradient": "^3.0.0",
     "ink-text-input": "^6.0.0",
     "lru-cache": "^11.2.4",
     "qrcode-terminal": "^0.12.0",
