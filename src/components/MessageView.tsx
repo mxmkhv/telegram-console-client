@@ -39,7 +39,7 @@ function getBubbleMessageLineCount(msg: Message, isGroupChat: boolean): number {
   return (hasName ? 1 : 0) + Math.max(1, textLines);
 }
 
-// Color palette for sender names in group chats (10 distinct colors, no blue - that's for you)
+// 10 distinct colors for senders (no blue - that's for you)
 const SENDER_COLORS = [
   "green",
   "yellow",
@@ -53,16 +53,10 @@ const SENDER_COLORS = [
   "redBright",
 ] as const;
 
-// Map senderId to color index - assigned in order of first appearance
-const senderColorMap = new Map<string, number>();
-let nextColorIndex = 0;
-
+// Parse senderId as number, mod by color count
 function getSenderColor(senderId: string): typeof SENDER_COLORS[number] {
-  if (!senderColorMap.has(senderId)) {
-    senderColorMap.set(senderId, nextColorIndex);
-    nextColorIndex = (nextColorIndex + 1) % SENDER_COLORS.length;
-  }
-  return SENDER_COLORS[senderColorMap.get(senderId)!]!;
+  const num = parseInt(senderId, 10) || 0;
+  return SENDER_COLORS[Math.abs(num) % SENDER_COLORS.length]!;
 }
 
 function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, messageLayout, isGroupChat }: MessageViewProps) {
