@@ -143,7 +143,9 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
 
       // Header panel navigation
       if (state.focusedPanel === "header") {
-        if (key.leftArrow) {
+        if (key.escape) {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        } else if (key.leftArrow) {
           dispatch({ type: "SET_HEADER_SELECTED_BUTTON", payload: "settings" });
         } else if (key.rightArrow) {
           dispatch({ type: "SET_HEADER_SELECTED_BUTTON", payload: "logout" });
@@ -153,13 +155,16 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
         return;
       }
 
-      // Escape handling
+      // Escape handling - context-aware focus chain
       if (key.escape) {
         if (state.currentView === "settings") {
           dispatch({ type: "SET_CURRENT_VIEW", payload: "chat" });
-        } else {
+        } else if (state.focusedPanel === "messages") {
           dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        } else if (state.focusedPanel === "chatList") {
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "header" });
         }
+        // mediaPanel escape is handled in MediaPanel component
         return;
       }
 
@@ -209,7 +214,7 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
   useInput(
     (_input, key) => {
       if (key.escape) {
-        dispatch({ type: "SET_FOCUSED_PANEL", payload: "chatList" });
+        dispatch({ type: "SET_FOCUSED_PANEL", payload: "messages" });
       }
     },
     { isActive: state.focusedPanel === "input" }
