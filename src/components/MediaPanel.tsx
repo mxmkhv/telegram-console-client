@@ -71,17 +71,19 @@ export function MediaPanel({ message, panelWidth, panelHeight, downloadMedia, on
 
   const metadata = formatMediaMetadata(media, messageId);
 
+  const focusColor = isFocused ? 'cyan' : 'blue';
+
   return (
     <Box
       flexDirection="column"
       borderStyle="round"
-      borderColor="blue"
+      borderColor={focusColor}
       width={panelWidth}
       height={panelHeight}
       paddingX={1}
     >
       <Box marginBottom={1}>
-        <Text bold color="blue">Media</Text>
+        <Text bold color={focusColor}>Media</Text>
       </Box>
 
       <Box flexDirection="column">

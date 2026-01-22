@@ -1,0 +1,70 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MediaPanel renders with cyan border when focused 1`] = `
+"╭──────────────────────────────────────╮
+│ Media                                │
+│                                      │
+│ Loading...                           │
+│                                      │
+│ Photo 100x100 | 1KB                  │
+│ Enter/Esc to close                   │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+╰──────────────────────────────────────╯"
+`;
+
+exports[`MediaPanel renders with blue border when unfocused 1`] = `
+"╭──────────────────────────────────────╮
+│ Media                                │
+│                                      │
+│ Loading...                           │
+│                                      │
+│ Photo 100x100 | 1KB                  │
+│ Enter/Esc to close                   │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+╰──────────────────────────────────────╯"
+`;
+
+exports[`MediaPanel defaults to focused state 1`] = `
+"╭──────────────────────────────────────╮
+│ Media                                │
+│                                      │
+│ Loading...                           │
+│                                      │
+│ Photo 100x100 | 1KB                  │
+│ Enter/Esc to close                   │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+╰──────────────────────────────────────╯"
+`;
