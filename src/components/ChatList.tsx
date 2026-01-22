@@ -20,14 +20,18 @@ const ChatRow = memo(function ChatRow({
   isActive: boolean;
 }) {
   const hasUnread = chat.unreadCount > 0;
-  const prefix = hasUnread ? "● " : "  ";
-  const title = chat.title.slice(0, 28);
+  const unreadIndicator = hasUnread ? "● " : "  ";
+  const groupIndicator = chat.isGroup ? "# " : "  ";
+  const title = chat.title.slice(0, 26);
   const suffix = hasUnread ? ` (${chat.unreadCount})` : "";
 
   return (
     <Text>
       <Text color={hasUnread ? "cyan" : undefined} inverse={isSelected}>
-        {prefix}
+        {unreadIndicator}
+      </Text>
+      <Text color={chat.isGroup ? "magenta" : undefined} inverse={isSelected}>
+        {groupIndicator}
       </Text>
       <Text
         inverse={isSelected}

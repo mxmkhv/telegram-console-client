@@ -62,19 +62,8 @@ function SettingsPanelInner() {
         )}
       </Box>
       <Box flexDirection="column" marginLeft={4} marginY={1}>
-        <Box borderStyle="single" borderColor="gray" paddingX={1}>
-          <Box flexDirection="column">
-            <Text dimColor>[14:32] </Text>
-            <Text>Alice: Hello!</Text>
-          </Box>
-        </Box>
-        <Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={-1}>
-          <Box flexDirection="column">
-            <Text dimColor>[14:33] </Text>
-            <Text color="cyan">You: </Text>
-            <Text>Hi there</Text>
-          </Box>
-        </Box>
+        <Text><Text dimColor>[14:32] </Text><Text>Alice:</Text> Hello!</Text>
+        <Text><Text dimColor>[14:33] </Text><Text color="cyan">You:</Text> Hi there</Text>
       </Box>
 
       {/* Bubble Option */}
@@ -90,19 +79,9 @@ function SettingsPanelInner() {
         )}
       </Box>
       <Box flexDirection="column" marginLeft={4} marginY={1}>
-        <Box borderStyle="single" borderColor="gray" paddingX={1}>
-          <Box flexDirection="column">
-            <Text dimColor>Alice</Text>
-            <Text dimColor>Hello!</Text>
-            <Text dimColor>14:32</Text>
-          </Box>
-        </Box>
-        <Box borderStyle="single" borderColor="gray" paddingX={1} marginTop={-1}>
-          <Box flexDirection="column" alignItems="flex-end">
-            <Text color="blue">Hi there</Text>
-            <Text dimColor>14:33</Text>
-          </Box>
-        </Box>
+        <Text><Text color="green">Alice</Text></Text>
+        <Text>Hello! <Text dimColor>[14:32]</Text></Text>
+        <Text>                    <Text color="cyan">Hi there</Text> <Text dimColor>[14:33]</Text></Text>
       </Box>
 
       <Text> </Text>

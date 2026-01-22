@@ -35,8 +35,22 @@ function getMessageLineCount(msg: Message, _isSelected: boolean): number {
 function getBubbleMessageLineCount(msg: Message, isGroupChat: boolean): number {
   const textLines = msg.text ? msg.text.split("\n").length : 0;
   const hasName = isGroupChat && !msg.isOutgoing;
-  // name line (if group + not outgoing) + text lines + timestamp line + blank line
-  return (hasName ? 1 : 0) + Math.max(1, textLines) + 1 + 1;
+  // name line (if group + not outgoing) + text lines (timestamp is inline on last line)
+  return (hasName ? 1 : 0) + Math.max(1, textLines);
+}
+
+// Color palette for sender names in group chats
+const SENDER_COLORS = ["green", "yellow", "magenta", "red", "cyan", "white"] as const;
+type SenderColor = typeof SENDER_COLORS[number];
+
+// Hash sender name to get consistent color
+function getSenderColor(senderName: string): SenderColor {
+  let hash = 0;
+  for (let i = 0; i < senderName.length; i++) {
+    hash = ((hash << 5) - hash) + senderName.charCodeAt(i);
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length]!;
 }
 
 function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, messageLayout, isGroupChat }: MessageViewProps) {
@@ -131,58 +145,59 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
   const visibleMessages = chatMessages.slice(startIndex, endIndex);
 
   // Render a single message in bubble layout
-  const renderBubbleMessage = (msg: Message, isSelected: boolean, actualIndex: number) => {
+  const renderBubbleMessage = (msg: Message, isSelected: boolean, _actualIndex: number) => {
     const showName = isGroupChat && !msg.isOutgoing;
     const textLines = msg.text ? msg.text.split("\n") : [""];
     const mediaInfo = msg.media ? formatMediaMetadata(msg.media, msg.id) : "";
-    const viewHint = isSelected && msg.media ? " [Enter to view]" : "";
-    const timestamp = formatTime(msg.timestamp);
+    const viewHint = isSelected && msg.media ? " [Enter]" : "";
+    const timestamp = `[${formatTime(msg.timestamp)}]`;
+    const senderColor = getSenderColor(msg.senderName);
 
     // Calculate padding for right-aligned messages
     const contentWidth = width - 4; // Account for borders and padding
 
     return (
-      <Box key={msg.id} flexDirection="column" marginBottom={1}>
-        {/* Sender name (groups only, others only) */}
+      <Box key={msg.id} flexDirection="column">
+        {/* Sender name (groups only, others only) - with unique color */}
         {showName && (
-          <Text dimColor>{msg.senderName}</Text>
+          <Text color={senderColor}>{msg.senderName}</Text>
         )}
 
-        {/* Message content */}
+        {/* Message content with inline timestamp on last line */}
         {textLines.map((line, lineIndex) => {
+          const isLastLine = lineIndex === textLines.length - 1;
           const isFirstLine = lineIndex === 0;
-          const content = isFirstLine && mediaInfo
-            ? `${line} ${mediaInfo}${viewHint}`.trim() || `${mediaInfo}${viewHint}`
-            : line;
+
+          // Build content for this line
+          let lineContent = line;
+          if (isFirstLine && mediaInfo) {
+            lineContent = `${line} ${mediaInfo}${viewHint}`.trim() || `${mediaInfo}${viewHint}`;
+          }
+
+          // Add timestamp to end of last line
+          const suffix = isLastLine ? ` ${timestamp}` : "";
+          const fullContent = lineContent + suffix;
 
           if (msg.isOutgoing) {
-            // Right-aligned, blue
-            const padding = Math.max(0, contentWidth - content.length);
+            // Right-aligned, cyan (better visibility than blue)
+            const padding = Math.max(0, contentWidth - fullContent.length);
             return (
               <Text key={lineIndex} inverse={isSelected}>
                 {" ".repeat(padding)}
-                <Text color="blue">{content}</Text>
+                <Text color="cyan">{lineContent}</Text>
+                {isLastLine && <Text dimColor> {timestamp}</Text>}
               </Text>
             );
           } else {
-            // Left-aligned, dim
+            // Left-aligned, normal text (not dim for better readability)
             return (
-              <Text key={lineIndex} inverse={isSelected} dimColor>
-                {content}
+              <Text key={lineIndex} inverse={isSelected}>
+                <Text>{lineContent}</Text>
+                {isLastLine && <Text dimColor> {timestamp}</Text>}
               </Text>
             );
           }
         })}
-
-        {/* Timestamp */}
-        {msg.isOutgoing ? (
-          <Text dimColor>
-            {" ".repeat(Math.max(0, contentWidth - timestamp.length))}
-            {timestamp}
-          </Text>
-        ) : (
-          <Text dimColor>{timestamp}</Text>
-        )}
       </Box>
     );
   };
