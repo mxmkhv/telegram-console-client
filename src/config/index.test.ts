@@ -25,6 +25,7 @@ describe("Config", () => {
       sessionPersistence: "persistent" as const,
       logLevel: "info" as const,
       authMethod: "qr" as const,
+      messageLayout: "classic" as const,
     };
 
     saveConfig(config, TEST_CONFIG_DIR);
@@ -66,6 +67,7 @@ describe("Environment Overrides", () => {
       sessionPersistence: "persistent" as const,
       logLevel: "info" as const,
       authMethod: "qr" as const,
+      messageLayout: "classic" as const,
     };
     saveConfig(config, TEST_CONFIG_DIR);
 

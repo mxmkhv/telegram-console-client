@@ -136,4 +136,40 @@ describe("MessageView", () => {
     // Snapshot will capture the styling including cyan color for "You"
     expect(lastFrame()).toMatchSnapshot();
   });
+
+  it("renders messages with reactions", () => {
+    const messagesWithReactions: Message[] = [
+      {
+        id: 1,
+        senderId: "user1",
+        senderName: "Alice",
+        text: "Hello there!",
+        timestamp: new Date("2024-01-15T10:30:00"),
+        isOutgoing: false,
+        reactions: [
+          { emoji: "👍", count: 2, hasUserReacted: false },
+          { emoji: "❤️", count: 1, hasUserReacted: true },
+        ],
+      },
+    ];
+
+    const { lastFrame } = renderWithProvider(
+      <MessageView
+        isFocused={true}
+        selectedChatTitle="Chat with Alice"
+        messages={messagesWithReactions}
+        selectedIndex={0}
+        width={60}
+        dispatch={mockDispatch}
+        chatId="test-chat"
+        sendReaction={mockSendReaction}
+        removeReaction={mockRemoveReaction}
+        messageLayout="classic"
+        isGroupChat={false}
+      />
+    );
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("👍");
+    expect(frame).toContain("❤️");
+  });
 });

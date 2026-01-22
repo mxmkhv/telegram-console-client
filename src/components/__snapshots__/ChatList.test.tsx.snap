@@ -5,9 +5,9 @@ exports[`ChatList renders correctly when focused 1`] = `
 │ Chats                           │
 │─────────────────────────────────│
 │                                 │
-│   John Doe                      │
-│ ● Jane Smith (3)                │
-│   Work Group                    │
+│     John Doe                    │
+│ ●   Jane Smith (3)              │
+│   # Work Group                  │
 │                                 │
 │                                 │
 │                                 │
@@ -32,9 +32,9 @@ exports[`ChatList renders correctly when unfocused 1`] = `
 │ Chats                           │
 │─────────────────────────────────│
 │                                 │
-│   John Doe                      │
-│ ● Jane Smith (3)                │
-│   Work Group                    │
+│     John Doe                    │
+│ ●   Jane Smith (3)              │
+│   # Work Group                  │
 │                                 │
 │                                 │
 │                                 │
@@ -59,9 +59,9 @@ exports[`ChatList renders chat with unread indicator in cyan 1`] = `
 │ Chats                           │
 │─────────────────────────────────│
 │                                 │
-│   John Doe                      │
-│ ● Jane Smith (3)                │
-│   Work Group                    │
+│     John Doe                    │
+│ ●   Jane Smith (3)              │
+│   # Work Group                  │
 │                                 │
 │                                 │
 │                                 │
