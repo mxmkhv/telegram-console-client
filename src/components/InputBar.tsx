@@ -1,6 +1,5 @@
-import React, { useState, useCallback, memo } from "react";
-import { Box, Text } from "ink";
-import { UncontrolledTextInput } from "ink-text-input";
+import React, { useState, useEffect, useRef, memo } from "react";
+import { Box, Text, useInput } from "ink";
 
 interface InputBarProps {
   isFocused: boolean;
@@ -8,36 +7,128 @@ interface InputBarProps {
   selectedChatId: string | null;
 }
 
-function InputBarInner({ isFocused, onSubmit, selectedChatId }: InputBarProps) {
-  // Track submit count to reset input after submission
-  const [resetKey, setResetKey] = useState(0);
+// Combined state to avoid race conditions between value and cursor
+interface InputState {
+  value: string;
+  cursor: number;
+}
 
-  const handleSubmit = useCallback((value: string) => {
-    if (value.trim() && selectedChatId) {
-      onSubmit(value.trim(), selectedChatId);
-      // Increment key to force UncontrolledTextInput to remount and clear
-      setResetKey((k) => k + 1);
+function InputBarInner({ isFocused, onSubmit, selectedChatId }: InputBarProps) {
+  // Single state object prevents race conditions between value and cursor updates
+  const [state, setState] = useState<InputState>({ value: "", cursor: 0 });
+  const prevChatIdRef = useRef(selectedChatId);
+
+  // Clear input when chat changes
+  useEffect(() => {
+    if (selectedChatId !== prevChatIdRef.current) {
+      setState({ value: "", cursor: 0 });
+      prevChatIdRef.current = selectedChatId;
     }
-  }, [selectedChatId, onSubmit]);
+  }, [selectedChatId]);
+
+  // Custom input handler - atomic state updates prevent character flipping
+  useInput(
+    (input, key) => {
+      // Submit on Enter
+      if (key.return) {
+        setState(s => {
+          if (s.value.trim() && selectedChatId) {
+            onSubmit(s.value.trim(), selectedChatId);
+            return { value: "", cursor: 0 };
+          }
+          return s;
+        });
+        return;
+      }
+
+      // Delete character before cursor
+      if (key.backspace || key.delete) {
+        setState(s => {
+          if (s.cursor > 0) {
+            return {
+              value: s.value.slice(0, s.cursor - 1) + s.value.slice(s.cursor),
+              cursor: s.cursor - 1,
+            };
+          }
+          return s;
+        });
+        return;
+      }
+
+      // Cursor movement - left
+      if (key.leftArrow) {
+        setState(s => ({ ...s, cursor: Math.max(0, s.cursor - 1) }));
+        return;
+      }
+
+      // Cursor movement - right
+      if (key.rightArrow) {
+        setState(s => ({ ...s, cursor: Math.min(s.value.length, s.cursor + 1) }));
+        return;
+      }
+
+      // Home (Ctrl+A)
+      if (key.ctrl && input === "a") {
+        setState(s => ({ ...s, cursor: 0 }));
+        return;
+      }
+
+      // End (Ctrl+E)
+      if (key.ctrl && input === "e") {
+        setState(s => ({ ...s, cursor: s.value.length }));
+        return;
+      }
+
+      // Insert character at cursor position - atomic update
+      if (input && !key.ctrl && !key.meta) {
+        setState(s => ({
+          value: s.value.slice(0, s.cursor) + input + s.value.slice(s.cursor),
+          cursor: s.cursor + input.length,
+        }));
+      }
+    },
+    { isActive: isFocused }
+  );
+
+  const { value, cursor } = state;
+  const placeholder = selectedChatId ? "Type a message..." : "Select a chat first";
+  const showPlaceholder = !value && !isFocused;
+
+  // Render text with cursor - clamp cursor to valid range
+  const safeCursor = Math.min(cursor, value.length);
+  const beforeCursor = value.slice(0, safeCursor);
+  const atCursor = value[safeCursor] || " ";
+  const afterCursor = value.slice(safeCursor + 1);
 
   return (
     <Box
-      borderStyle="single"
-      borderColor={isFocused ? "cyan" : undefined}
+      width="100%"
+      minHeight={3}
+      borderStyle="round"
+      borderColor={isFocused ? "cyan" : "blue"}
       paddingX={1}
     >
       <Text bold color={isFocused ? "cyan" : "white"}>{">"} </Text>
       <Box flexGrow={1}>
-        <UncontrolledTextInput
-          // Key changes on chat switch OR after submit to clear input
-          key={`${selectedChatId}-${resetKey}`}
-          onSubmit={handleSubmit}
-          placeholder={selectedChatId ? "Type a message..." : "Select a chat first"}
-          focus={isFocused}
-        />
+        {showPlaceholder ? (
+          <Text dimColor>{placeholder}</Text>
+        ) : (
+          <Text>
+            {beforeCursor}
+            {isFocused ? <Text inverse>{atCursor}</Text> : atCursor}
+            {afterCursor}
+          </Text>
+        )}
       </Box>
     </Box>
   );
 }
 
-export const InputBar = memo(InputBarInner);
+// Custom comparison to prevent unnecessary re-renders
+export const InputBar = memo(InputBarInner, (prev, next) => {
+  return (
+    prev.isFocused === next.isFocused &&
+    prev.selectedChatId === next.selectedChatId &&
+    prev.onSubmit === next.onSubmit
+  );
+});

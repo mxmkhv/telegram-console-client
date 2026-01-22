@@ -25,8 +25,8 @@
         "modify": ["package.json"]
       },
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Installed ink-big-text@2.0.0 and ink-gradient@3.0.0"
     },
     {
       "id": "US-002",
@@ -52,8 +52,8 @@
         ]
       },
       "priority": 2,
-      "passes": false,
-      "notes": "Gradient is expensive - only used on this screen, unmounts when entering MainApp"
+      "passes": true,
+      "notes": "Implemented with 4 tests. Code review approved with minor suggestions (version could be from package.json later)."
     },
     {
       "id": "US-003",
@@ -73,8 +73,8 @@
         "create": ["src/components/HeaderBar.test.tsx"]
       },
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Changed borderStyle to round, borderColor cyan/blue. Created 3 snapshot tests."
     },
     {
       "id": "US-004",
@@ -96,8 +96,8 @@
         "create": ["src/components/ChatList.test.tsx"]
       },
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Changed outer border to round, cyan/blue colors. Unread indicator now cyan. 4 snapshot tests."
     },
     {
       "id": "US-005",
@@ -122,8 +122,8 @@
         "create": ["src/components/MessageView.test.tsx"]
       },
       "priority": 5,
-      "passes": false,
-      "notes": "Typography is mostly correct already - focus on border changes"
+      "passes": true,
+      "notes": "Changed borders to round, cyan/blue colors. Typography was already correct. 5 snapshot tests."
     },
     {
       "id": "US-006",
@@ -143,8 +143,8 @@
         "create": ["src/components/InputBar.test.tsx"]
       },
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Changed borders to round, cyan/blue colors. 3 snapshot tests."
     },
     {
       "id": "US-007",
@@ -163,8 +163,8 @@
         "create": ["src/components/StatusBar.test.tsx"]
       },
       "priority": 7,
-      "passes": false,
-      "notes": "StatusBar doesn't have focus states - just update border style"
+      "passes": true,
+      "notes": "Changed borders to round. 4 snapshot tests covering connection states."
     },
     {
       "id": "US-008",
@@ -184,8 +184,8 @@
         "create": ["src/components/MediaPanel.test.tsx"]
       },
       "priority": 8,
-      "passes": false,
-      "notes": "MediaPanel already has round borders - just update colors"
+      "passes": true,
+      "notes": "Changed border and header to cyan/blue based on focus. 3 snapshot tests."
     },
     {
       "id": "US-009",
@@ -208,8 +208,8 @@
         ]
       },
       "priority": 9,
-      "passes": false,
-      "notes": "WelcomeNew.tsx and WelcomeBack.tsx can be deleted in a future cleanup task"
+      "passes": true,
+      "notes": "Replaced WelcomeNew/WelcomeBack with WelcomeSplash. Tests updated."
     },
     {
       "id": "US-010",
@@ -235,8 +235,8 @@
         ]
       },
       "priority": 10,
-      "passes": false,
-      "notes": "This is a verification and cleanup task - may be quick if all previous tasks passed"
+      "passes": true,
+      "notes": "Deleted WelcomeNew/WelcomeBack. Fixed lint errors. All 49 tests pass."
     }
   ],
   "subagentInstructions": {

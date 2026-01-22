@@ -21,8 +21,8 @@ function HeaderBarInner({ isFocused, selectedButton }: HeaderBarProps) {
 
   return (
     <Box
-      borderStyle="single"
-      borderColor={isFocused ? "cyan" : undefined}
+      borderStyle="round"
+      borderColor={isFocused ? "cyan" : "blue"}
       paddingX={1}
       justifyContent="space-between"
     >

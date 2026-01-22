@@ -1,9 +1,9 @@
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, type Dispatch } from "react";
 import { Box, Text, useInput } from "ink";
-import type { Message } from "../types";
+import type { Message, TelegramService } from "../types";
 import { MediaPlaceholder } from './MediaPlaceholder.js';
 import { MediaPreview } from './MediaPreview.js';
-import { useTelegramService, useAppDispatch } from '../state/context.js';
+import type { AppAction } from '../state/reducer.js';
 
 const VISIBLE_LINES = 20;
 
@@ -15,6 +15,8 @@ interface MessageViewProps {
   isLoadingOlder?: boolean;
   canLoadOlder?: boolean;
   width: number;
+  dispatch: Dispatch<AppAction>;
+  telegramService: TelegramService | null;
 }
 
 function formatTime(date: Date): string {
@@ -36,9 +38,7 @@ function getMessageLineCount(msg: Message, isSelected: boolean): number {
   return lines;
 }
 
-function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width }: MessageViewProps) {
-  const telegramService = useTelegramService();
-  const dispatch = useAppDispatch();
+function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages, selectedIndex, isLoadingOlder = false, canLoadOlder = false, width, dispatch, telegramService }: MessageViewProps) {
 
   const downloadMedia = useCallback((message: Message) => {
     if (!telegramService) return Promise.resolve(undefined);
@@ -134,14 +134,14 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
 
   if (!selectedChatTitle) {
     return (
-      <Box flexDirection="column" borderStyle="single" borderColor={isFocused ? "cyan" : undefined} width={width} height={VISIBLE_LINES + 3} justifyContent="center" alignItems="center">
+      <Box flexDirection="column" borderStyle="round" borderColor={isFocused ? "cyan" : "blue"} width={width} height={VISIBLE_LINES + 3} justifyContent="center" alignItems="center">
         <Text dimColor>Select a chat to start</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor={isFocused ? "cyan" : undefined} width={width} height={VISIBLE_LINES + 3}>
+    <Box flexDirection="column" borderStyle="round" borderColor={isFocused ? "cyan" : "blue"} width={width} height={VISIBLE_LINES + 3}>
       <Box paddingX={1} borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false}>
         <Text bold color={isFocused ? "cyan" : undefined}>{selectedChatTitle}</Text>
         {totalLines > VISIBLE_LINES && (

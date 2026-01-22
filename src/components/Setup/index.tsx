@@ -17,8 +17,8 @@ interface SetupProps {
 
 export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
   const [step, setStep] = useState<SetupStep>("welcome");
-  const [apiId, setApiId] = useState<string>("");
-  const [apiHash, setApiHash] = useState<string>("");
+  const [_apiId, setApiId] = useState<string>("");
+  const [_apiHash, setApiHash] = useState<string>("");
   const [qrDisplay, setQrDisplay] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   void isLoading; // Used for loading state
