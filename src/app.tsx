@@ -355,6 +355,8 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
               canLoadOlder={canLoadOlder}
               width={messageViewWidth}
               dispatch={dispatch}
+              messageLayout={state.messageLayout}
+              isGroupChat={selectedChat?.isGroup ?? false}
             />
             {state.mediaPanel.isOpen && mediaPanelMessage && (
               <MediaPanel
