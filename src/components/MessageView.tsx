@@ -178,7 +178,7 @@ function MessageViewInner({ isFocused, selectedChatTitle, messages: chatMessages
       <Box key={msg.id} flexDirection="column">
         {/* Sender name (groups only, others only) - with unique color */}
         {showName && (
-          <Text color={senderColor}>{msg.senderName}</Text>
+          <Text color={senderColor}>{msg.senderName || "Unknown"}</Text>
         )}
 
         {/* Message content with inline timestamp on last line */}
