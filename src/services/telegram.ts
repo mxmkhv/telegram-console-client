@@ -74,6 +74,9 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
     connectionRetries: 5,
   });
 
+  // Disable GramJS logging
+  client.setLogLevel("none" as never);
+
   let connectionState: ConnectionState = "disconnected";
   let connectionCallback: ((state: ConnectionState) => void) | null = null;
   let _messageCallback: ((message: Message, chatId: string) => void) | null = null;

@@ -1,7 +1,22 @@
 import React from "react";
 import { Box, Text, useInput } from "ink";
-import BigText from "ink-big-text";
 import Gradient from "ink-gradient";
+import pkg from "../../package.json";
+
+const LOGO = `
+ ████████╗███████╗██╗     ███████╗ ██████╗ ██████╗  █████╗ ███╗   ███╗
+ ╚══██╔══╝██╔════╝██║     ██╔════╝██╔════╝ ██╔══██╗██╔══██╗████╗ ████║
+    ██║   █████╗  ██║     █████╗  ██║  ███╗██████╔╝███████║██╔████╔██║
+    ██║   ██╔══╝  ██║     ██╔══╝  ██║   ██║██╔══██╗██╔══██║██║╚██╔╝██║
+    ██║   ███████╗███████╗███████╗╚██████╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+    ╚═╝   ╚══════╝╚══════╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+  ██████╗ ██████╗ ███╗   ██╗███████╗ ██████╗ ██╗     ███████╗
+ ██╔════╝██╔═══██╗████╗  ██║██╔════╝██╔═══██╗██║     ██╔════╝
+ ██║     ██║   ██║██╔██╗ ██║███████╗██║   ██║██║     █████╗
+ ██║     ██║   ██║██║╚██╗██║╚════██║██║   ██║██║     ██╔══╝
+ ╚██████╗╚██████╔╝██║ ╚████║███████║╚██████╔╝███████╗███████╗
+  ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝ ╚═════╝ ╚══════╝╚══════╝
+`.trim();
 
 interface WelcomeSplashProps {
   onContinue: () => void;
@@ -20,12 +35,9 @@ export function WelcomeSplash({ onContinue }: WelcomeSplashProps) {
       flexGrow={1}
     >
       <Gradient colors={["cyan", "blue"]}>
-        <BigText text="TELEGRAM" font="block" />
+        <Text>{LOGO}</Text>
       </Gradient>
-      <Gradient colors={["cyan", "blue"]}>
-        <BigText text="CONSOLE" font="block" />
-      </Gradient>
-      <Text dimColor>v0.1.0</Text>
+      <Text dimColor>v{pkg.version}</Text>
       <Text> </Text>
       <Text dimColor>Press any key to continue</Text>
     </Box>

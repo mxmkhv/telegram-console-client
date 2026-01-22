@@ -1,10 +1,16 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from "fs";
+import {
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  mkdirSync,
+  unlinkSync,
+} from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import type { AppConfig, MessageLayout } from "../types";
 
 const CONFIG_FILENAME = "config.json";
-const DEFAULT_CONFIG_DIR = join(homedir(), ".config", "telegram-console-client");
+const DEFAULT_CONFIG_DIR = join(homedir(), ".config", "telegram-console");
 
 export function getConfigDir(customDir?: string): string {
   return customDir ?? DEFAULT_CONFIG_DIR;
@@ -42,20 +48,30 @@ export function saveConfig(config: AppConfig, customDir?: string): void {
   writeFileSync(path, JSON.stringify(config, null, 2));
 }
 
-export function loadConfigWithEnvOverrides(customDir?: string): AppConfig | null {
+export function loadConfigWithEnvOverrides(
+  customDir?: string,
+): AppConfig | null {
   const config = loadConfig(customDir);
   if (!config) return null;
 
   return {
     ...config,
     apiId: process.env.TG_API_ID
-      ? (/^\d+$/.test(process.env.TG_API_ID) ? parseInt(process.env.TG_API_ID, 10) : process.env.TG_API_ID)
+      ? /^\d+$/.test(process.env.TG_API_ID)
+        ? parseInt(process.env.TG_API_ID, 10)
+        : process.env.TG_API_ID
       : config.apiId,
     apiHash: process.env.TG_API_HASH ?? config.apiHash,
-    sessionPersistence: (process.env.TG_SESSION_MODE as AppConfig["sessionPersistence"]) ?? config.sessionPersistence,
-    logLevel: (process.env.TG_LOG_LEVEL as AppConfig["logLevel"]) ?? config.logLevel,
-    authMethod: (process.env.TG_AUTH_METHOD as AppConfig["authMethod"]) ?? config.authMethod,
-    messageLayout: (process.env.TG_MESSAGE_LAYOUT as MessageLayout) ?? config.messageLayout,
+    sessionPersistence:
+      (process.env.TG_SESSION_MODE as AppConfig["sessionPersistence"]) ??
+      config.sessionPersistence,
+    logLevel:
+      (process.env.TG_LOG_LEVEL as AppConfig["logLevel"]) ?? config.logLevel,
+    authMethod:
+      (process.env.TG_AUTH_METHOD as AppConfig["authMethod"]) ??
+      config.authMethod,
+    messageLayout:
+      (process.env.TG_MESSAGE_LAYOUT as MessageLayout) ?? config.messageLayout,
   };
 }
 

@@ -1,4 +1,4 @@
-# telegram-console-client
+# telegram-console
 
 <p align="center">
   <img src="logo.png" alt="Telegram Console" width="600">
@@ -9,9 +9,9 @@ A terminal-based Telegram client for technical users.
 ## Installation
 
 ```bash
-npm install -g telegram-console-client
+npm install -g telegram-console
 # or
-bun install -g telegram-console-client
+bun install -g telegram-console
 ```
 
 ## Setup
@@ -32,7 +32,7 @@ bun install -g telegram-console-client
 
 ### Step 2: Run the Client
 
-1. Run `telegram-console-client`
+1. Run `telegram-console`
 2. Enter your API ID and API Hash when prompted
 3. Authenticate using one of these methods:
    - **QR Code** (default): Scan the QR code with Telegram mobile app (Settings → Devices → Link Desktop Device)
@@ -41,26 +41,26 @@ bun install -g telegram-console-client
 ## Usage
 
 ```bash
-telegram-console-client
+telegram-console
 ```
 
 ### Development Mode
 
 ```bash
 # Run with mock data (no Telegram connection required)
-telegram-console-client --mock
+telegram-console --mock
 ```
 
 ### Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| ↑/↓ | Navigate chats / scroll messages |
-| ←/→ | Switch panels |
-| Enter | Select chat / send message |
-| Tab | Focus input |
-| Esc | Go back |
-| Ctrl+C | Exit |
+| Key    | Action                           |
+| ------ | -------------------------------- |
+| ↑/↓    | Navigate chats / scroll messages |
+| ←/→    | Switch panels                    |
+| Enter  | Select chat / send message       |
+| Tab    | Focus input                      |
+| Esc    | Go back                          |
+| Ctrl+C | Exit                             |
 
 ## Features
 
@@ -123,17 +123,17 @@ src/
 
 ## Configuration
 
-Config file location: `~/.config/telegram-console-client/config.json`
+Config file location: `~/.config/telegram-console/config.json`
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `TG_API_ID` | Telegram API ID |
-| `TG_API_HASH` | Telegram API Hash |
-| `TG_SESSION_MODE` | `persistent` or `ephemeral` |
-| `TG_LOG_LEVEL` | `quiet`, `info`, or `verbose` |
-| `TG_AUTH_METHOD` | `qr` or `phone` |
+| Variable          | Description                   |
+| ----------------- | ----------------------------- |
+| `TG_API_ID`       | Telegram API ID               |
+| `TG_API_HASH`     | Telegram API Hash             |
+| `TG_SESSION_MODE` | `persistent` or `ephemeral`   |
+| `TG_LOG_LEVEL`    | `quiet`, `info`, or `verbose` |
+| `TG_AUTH_METHOD`  | `qr` or `phone`               |
 
 ## License
 

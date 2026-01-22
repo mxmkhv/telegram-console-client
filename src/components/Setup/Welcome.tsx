@@ -13,10 +13,17 @@ export function Welcome({ onContinue }: WelcomeProps) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold color="cyan">Welcome to telegram-console-client!</Text>
+      <Text bold color="cyan">
+        Welcome to telegram-console!
+      </Text>
       <Text></Text>
       <Text>To use this client, you need Telegram API credentials.</Text>
-      <Text>Get them at: <Text color="blue" underline>https://my.telegram.org/apps</Text></Text>
+      <Text>
+        Get them at:{" "}
+        <Text color="blue" underline>
+          https://my.telegram.org/apps
+        </Text>
+      </Text>
       <Text></Text>
     </Box>
   );

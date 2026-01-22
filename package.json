@@ -1,10 +1,30 @@
 {
-  "name": "telegram-console-client",
-  "version": "0.1.0",
+  "name": "telegram-console",
+  "version": "0.1.1",
   "type": "module",
   "description": "A terminal-based Telegram client",
+  "author": "Max Kehayov",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mxmkhv/telegram-console.git"
+  },
+  "homepage": "https://github.com/mxmkhv/telegram-console#readme",
+  "bugs": {
+    "url": "https://github.com/mxmkhv/telegram-console/issues"
+  },
+  "keywords": [
+    "telegram",
+    "cli",
+    "terminal",
+    "tui",
+    "chat",
+    "messenger",
+    "ink",
+    "react"
+  ],
   "bin": {
-    "telegram-console-client": "./dist/index.js"
+    "telegram-console": "./dist/index.js"
   },
   "files": [
     "dist"
@@ -37,7 +57,6 @@
   "dependencies": {
     "conf": "^15.0.2",
     "ink": "^6.6.0",
-    "ink-big-text": "^2.0.0",
     "ink-gradient": "^3.0.0",
     "ink-text-input": "^6.0.0",
     "lru-cache": "^11.2.4",
