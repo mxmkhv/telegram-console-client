@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Terminal-based Telegram client built with React + Ink (terminal UI framework). Uses GramJS for the Telegram API.
 
-See project guidelines in /docs folder.
+**_ IMPORTANT _**
+!!!! Before starting work on the project read all guidelines in /docs folder. !!!!
 
 ## Commands
 
