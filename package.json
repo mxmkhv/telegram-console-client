@@ -1,6 +1,6 @@
 {
   "name": "telegram-console",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "type": "module",
   "description": "A terminal-based Telegram client",
   "author": "Max Kehayov",
