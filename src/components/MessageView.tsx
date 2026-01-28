@@ -24,6 +24,7 @@ interface MessageViewProps {
   messageLayout: MessageLayout;
   isGroupChat: boolean;
   chatId: string | null;
+  setSelectedIndex?: (index: number) => void;
   sendReaction: (
     chatId: string,
     messageId: number,
@@ -92,6 +93,7 @@ function MessageViewInner({
   messageLayout,
   isGroupChat,
   chatId,
+  setSelectedIndex,
   sendReaction,
   removeReaction,
 }: MessageViewProps) {
@@ -166,9 +168,23 @@ function MessageViewInner({
         return;
       }
 
-      // Existing Enter handling for media panel
+      // Enter handling: reply navigation OR media panel
       if (key.return) {
         const selectedMessage = chatMessages[selectedIndex];
+
+        // If this is a reply message, navigate to original
+        if (selectedMessage?.replyToMsgId && setSelectedIndex) {
+          const originalIndex = chatMessages.findIndex(
+            (m) => m.id === selectedMessage.replyToMsgId
+          );
+          if (originalIndex >= 0) {
+            setSelectedIndex(originalIndex);
+            startMsgFlash(selectedMessage.replyToMsgId, FLASH_CONFIG.messageFlashCount);
+            return;
+          }
+        }
+
+        // Otherwise, open media panel if message has media
         if (selectedMessage?.media) {
           dispatch({
             type: "OPEN_MEDIA_PANEL",
