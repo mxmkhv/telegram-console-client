@@ -106,11 +106,7 @@ function MessageViewInner({
 
   // New message flash state
   const { startFlash: startMsgFlash, isFlashing: isMsgFlashing } = useFlash();
-  const {
-    startFlash: startIndicatorFlash,
-    isFlashing: isIndicatorFlashing,
-  } = useFlash();
-  const [newIndicatorVisible, setNewIndicatorVisible] = useState(false);
+  const { startFlash: startIndicatorFlash, isFlashing: isIndicatorFlashing } = useFlash();
   const telegramService = useTelegramService();
 
   // Check if user is viewing the bottom of messages
@@ -126,19 +122,22 @@ function MessageViewInner({
       if (isAtBottom) {
         startMsgFlash(message.id, FLASH_CONFIG.messageFlashCount);
       } else {
-        setNewIndicatorVisible(true);
-        startIndicatorFlash("new-indicator", FLASH_CONFIG.indicatorFlashCount);
+        // Flash the "↓ X more" indicator and increment unread count
+        startIndicatorFlash("scroll-indicator", FLASH_CONFIG.indicatorFlashCount);
+        if (chatId) {
+          dispatch({ type: "INCREMENT_UNREAD", payload: { chatId } });
+        }
       }
     });
     return unsub;
-  }, [telegramService, chatId, isAtBottom, startMsgFlash, startIndicatorFlash]);
+  }, [telegramService, chatId, isAtBottom, startMsgFlash, startIndicatorFlash, dispatch]);
 
-  // Clear indicator when user scrolls to bottom
+  // Clear unread count when user scrolls to bottom
   useEffect(() => {
-    if (isAtBottom) {
-      setNewIndicatorVisible(false);
+    if (isAtBottom && chatId) {
+      dispatch({ type: "UPDATE_UNREAD_COUNT", payload: { chatId, count: 0 } });
     }
-  }, [isAtBottom]);
+  }, [isAtBottom, chatId, dispatch]);
 
   // Handle 'r' key for reactions and Enter for media panel
   useInput(
@@ -614,11 +613,8 @@ function MessageViewInner({
               );
             })}
         {showScrollDown && (
-          <Text dimColor> ↓ {chatMessages.length - endIndex} more</Text>
-        )}
-        {newIndicatorVisible && (
-          <Text inverse={isIndicatorFlashing("new-indicator")} color="cyan">
-            {" "}↓ new
+          <Text dimColor>
+            {" "}↓ <Text inverse={isIndicatorFlashing("scroll-indicator")}>{chatMessages.length - endIndex}</Text> more
           </Text>
         )}
       </Box>

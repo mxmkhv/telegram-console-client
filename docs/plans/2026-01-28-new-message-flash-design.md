@@ -10,6 +10,48 @@
 
 ---
 
+## Revision 2 - Updated Requirements
+
+### Summary of Changes
+
+Based on user feedback, the following changes are needed:
+
+1. **Remove separate "↓ new" indicator row** - it clutters vertical space
+2. **Flash the "↓ X more" count instead** - when new messages arrive while scrolled up:
+   - Increment the count (e.g., 11 → 12)
+   - Flash the number portion
+3. **Selected chat unread tracking**:
+   - When scrolled up in selected chat, increment `unreadCount` for new messages
+   - This makes the cyan dot (●) appear in ChatList for the selected chat
+   - Clear unread count immediately when user scrolls to bottom
+4. **Keep existing ChatList indicator** - the cyan dot already works, just ensure it updates
+
+### Behavioral Changes
+
+| Scenario | Current | New |
+|----------|---------|-----|
+| New msg in selected chat (scrolled up) | Shows "↓ new" row | Flash "↓ X more", increment count, increment unreadCount |
+| New msg in selected chat (at bottom) | Single flash on message | Keep same |
+| Scroll to bottom of selected chat | - | Clear unreadCount immediately |
+| ChatList shows selected chat with unread | No indicator | Cyan dot appears |
+
+### Files to Modify
+
+1. **`src/components/MessageView.tsx`**:
+   - Remove `newIndicatorVisible` state and "↓ new" row
+   - Flash the existing `showScrollDown` text when new messages arrive
+   - Track count of messages below viewport (already exists)
+
+2. **`src/state/reducer.ts`**:
+   - Change `ADD_MESSAGE` to increment `unreadCount` for selected chat when NOT at bottom
+   - Need to pass `isAtBottom` context to reducer (or handle in component)
+
+3. **`src/app.tsx`** or **`src/components/MessageView.tsx`**:
+   - When `isAtBottom` changes to `true`, dispatch action to clear unread count
+   - Call `markAsRead` API
+
+---
+
 ## Task 1: Create Flash Configuration
 
 **Files:**
