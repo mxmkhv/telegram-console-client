@@ -203,6 +203,7 @@ export const InputBar = memo(InputBarInner, (prev, next) => {
     prev.selectedChatId === next.selectedChatId &&
     prev.onSubmit === next.onSubmit &&
     prev.onEdit === next.onEdit &&
+    prev.onStartEdit === next.onStartEdit &&
     prev.replyingToMessage === next.replyingToMessage &&
     prev.editingMessage === next.editingMessage
   );
