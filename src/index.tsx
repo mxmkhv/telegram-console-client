@@ -19,14 +19,35 @@ import { render } from "ink";
 import { App } from "./app";
 import { createRequire } from "module";
 
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json");
+
 // Handle version flag
 if (process.argv.includes("-v") || process.argv.includes("--version")) {
-  const require = createRequire(import.meta.url);
-  const pkg = require("../package.json");
   console.log(pkg.version);
   process.exit(0);
 }
 
-const useMock = process.argv.includes("--mock");
+// Handle help flag
+if (process.argv.includes("-h") || process.argv.includes("--help")) {
+  console.log(`
+telegram-console v${pkg.version}
 
-render(<App useMock={useMock} />);
+A terminal-based Telegram client
+
+Usage: telegram-console [options]
+
+Options:
+  -v, --version   Show version
+  -h, --help      Show this help
+  --auth-qr       Authenticate via QR code (default)
+  --incognito     Don't persist session to disk
+  --mock          Use mock service for testing
+`);
+  process.exit(0);
+}
+
+const useMock = process.argv.includes("--mock");
+const incognito = process.argv.includes("--incognito");
+
+render(<App useMock={useMock} incognito={incognito} />);

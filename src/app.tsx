@@ -443,9 +443,10 @@ function MainApp({ telegramService, onLogout }: MainAppProps) {
 
 interface AppProps {
   useMock?: boolean;
+  incognito?: boolean;
 }
 
-export function App({ useMock = false }: AppProps) {
+export function App({ useMock = false, incognito = false }: AppProps) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [telegramService, setTelegramService] = useState<TelegramService | null>(null);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
@@ -475,7 +476,7 @@ export function App({ useMock = false }: AppProps) {
             apiId: config.apiId,
             apiHash: config.apiHash,
             session,
-            onSessionUpdate: (newSession) => {
+            onSessionUpdate: incognito ? undefined : (newSession) => {
               try {
                 saveSession(newSession);
               } catch {
@@ -486,7 +487,7 @@ export function App({ useMock = false }: AppProps) {
         );
       }
     }
-  }, [isSetupComplete, config, useMock]);
+  }, [isSetupComplete, config, useMock, incognito]);
 
   // Fetch user name and show welcome after service is ready
   useEffect(() => {
@@ -506,13 +507,13 @@ export function App({ useMock = false }: AppProps) {
 
   const handleSetupComplete = useCallback((newConfig: AppConfig, session: string) => {
     saveConfig(newConfig);
-    // Save session string to config directory
-    if (session) {
+    // Save session string to config directory (skip in incognito mode)
+    if (session && !incognito) {
       saveSession(session);
     }
     setConfig(newConfig);
     setIsSetupComplete(true);
-  }, []);
+  }, [incognito]);
 
   const handleWelcomeDismiss = useCallback(() => {
     setShowWelcome(false);
