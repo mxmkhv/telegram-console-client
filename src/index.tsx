@@ -17,6 +17,15 @@ process.stderr.write = ((chunk: string | Uint8Array, ...args: unknown[]) => {
 
 import { render } from "ink";
 import { App } from "./app";
+import { createRequire } from "module";
+
+// Handle version flag
+if (process.argv.includes("-v") || process.argv.includes("--version")) {
+  const require = createRequire(import.meta.url);
+  const pkg = require("../package.json");
+  console.log(pkg.version);
+  process.exit(0);
+}
 
 const useMock = process.argv.includes("--mock");
 
