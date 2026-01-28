@@ -189,7 +189,7 @@ export function createMockTelegramService(): TelegramService {
       return chatMessages.slice(-limit);
     },
 
-    async sendMessage(chatId: string, text: string) {
+    async sendMessage(chatId: string, text: string, replyToMsgId?: number) {
       const message: Message = {
         id: Date.now(),
         senderId: "me",
@@ -197,12 +197,34 @@ export function createMockTelegramService(): TelegramService {
         text,
         timestamp: new Date(),
         isOutgoing: true,
+        replyToMsgId,
+        replyToSenderName: replyToMsgId
+          ? messages[chatId]?.find((m) => m.id === replyToMsgId)?.senderName
+          : undefined,
       };
       if (!messages[chatId]) {
         messages[chatId] = [];
       }
       messages[chatId]!.push(message);
       return message;
+    },
+
+    async editMessage(chatId: string, messageId: number, newText: string) {
+      const chatMessages = messages[chatId];
+      if (chatMessages) {
+        const msgIndex = chatMessages.findIndex((m) => m.id === messageId);
+        if (msgIndex >= 0) {
+          chatMessages[msgIndex] = { ...chatMessages[msgIndex]!, text: newText };
+        }
+      }
+      return {
+        id: messageId,
+        senderId: "me",
+        senderName: "You",
+        text: newText,
+        timestamp: new Date(),
+        isOutgoing: true,
+      };
     },
 
     onConnectionStateChange(callback) {
