@@ -28,6 +28,8 @@ export interface AppState {
   mediaPanel: MediaPanelState;
   inlinePreviews: Map<number, InlinePreviewState>;
   messageLayout: MessageLayout;
+  replyingToMessage: Message | null;
+  editingMessage: Message | null;
 }
 
 export type AppAction =
@@ -59,7 +61,11 @@ export type AppAction =
   | { type: "SET_MESSAGE_LAYOUT"; payload: MessageLayout }
   // Reaction actions
   | { type: "ADD_REACTION"; payload: { chatId: string; messageId: number; emoji: string } }
-  | { type: "REMOVE_REACTION"; payload: { chatId: string; messageId: number } };
+  | { type: "REMOVE_REACTION"; payload: { chatId: string; messageId: number } }
+  // Reply/Edit actions
+  | { type: "SET_REPLYING_TO"; payload: Message | null }
+  | { type: "SET_EDITING_MESSAGE"; payload: Message | null }
+  | { type: "UPDATE_MESSAGE"; payload: { chatId: string; messageId: number; newText: string } };
 
 export const initialState: AppState = {
   connectionState: "disconnected",
@@ -81,6 +87,8 @@ export const initialState: AppState = {
   },
   inlinePreviews: new Map(),
   messageLayout: "classic",
+  replyingToMessage: null,
+  editingMessage: null,
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -92,7 +100,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, chats: action.payload };
 
     case "SELECT_CHAT":
-      return { ...state, selectedChatId: action.payload, focusedPanel: "messages" };
+      return {
+        ...state,
+        selectedChatId: action.payload,
+        focusedPanel: "messages",
+        replyingToMessage: null,
+        editingMessage: null,
+      };
 
     case "SET_MESSAGES":
       return {
@@ -350,6 +364,27 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           return { ...msg, reactions: updated };
         }
       });
+
+      return {
+        ...state,
+        messages: { ...state.messages, [chatId]: updatedMessages },
+      };
+    }
+
+    case "SET_REPLYING_TO":
+      return { ...state, replyingToMessage: action.payload };
+
+    case "SET_EDITING_MESSAGE":
+      return { ...state, editingMessage: action.payload };
+
+    case "UPDATE_MESSAGE": {
+      const { chatId, messageId, newText } = action.payload;
+      const messages = state.messages[chatId];
+      if (!messages) return state;
+
+      const updatedMessages = messages.map((msg) =>
+        msg.id === messageId ? { ...msg, text: newText } : msg
+      );
 
       return {
         ...state,

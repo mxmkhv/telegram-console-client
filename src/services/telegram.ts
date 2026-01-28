@@ -57,6 +57,18 @@ function extractMedia(msg: Api.Message): MediaAttachment | undefined {
       };
     }
 
+    // Check for voice message
+    const audioAttr = attrs.find(a => a.className === 'DocumentAttributeAudio') as Api.DocumentAttributeAudio | undefined;
+    if (audioAttr?.voice) {
+      return {
+        type: 'voice',
+        fileSize: Number(doc.size),
+        duration: audioAttr.duration,
+        mimeType: doc.mimeType,
+        _message: msg,
+      };
+    }
+
     // Check for GIF/animation
     const isAnimated = attrs.some(a => a.className === 'DocumentAttributeAnimated');
     if (isAnimated || doc.mimeType === 'video/mp4') {
@@ -175,9 +187,16 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
     },
 
     async getMessages(chatId: string, limit = 50, offsetId?: number) {
-      const messages = await client.getMessages(chatId, { limit, offsetId });
+      const rawMessages = await client.getMessages(chatId, { limit, offsetId });
+
+      // Build a map of message IDs to sender names for reply resolution
+      const msgIdToSender = new Map<number, string>();
+      for (const m of rawMessages) {
+        msgIdToSender.set(m.id, formatSenderName(m.sender as GramJSSender | undefined));
+      }
+
       // Reverse to get chronological order (oldest first)
-      return messages.map((m) => ({
+      return rawMessages.map((m) => ({
         id: m.id,
         senderId: m.senderId?.toString() ?? "",
         senderName: formatSenderName(m.sender as GramJSSender | undefined),
@@ -186,16 +205,43 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
         isOutgoing: m.out ?? false,
         media: extractMedia(m),
         reactions: extractReactions(m),
+        replyToMsgId: m.replyTo?.replyToMsgId,
+        replyToSenderName: m.replyTo?.replyToMsgId
+          ? msgIdToSender.get(m.replyTo.replyToMsgId) ?? "Unknown"
+          : undefined,
       })).reverse();
     },
 
-    async sendMessage(chatId: string, text: string) {
-      const result = await client.sendMessage(chatId, { message: text });
+    async sendMessage(chatId: string, text: string, replyToMsgId?: number, replyToSenderName?: string) {
+      const result = await client.sendMessage(chatId, {
+        message: text,
+        ...(replyToMsgId && { replyTo: replyToMsgId }),
+      });
       return {
         id: result.id,
         senderId: "me",
         senderName: "You",
         text,
+        timestamp: new Date(),
+        isOutgoing: true,
+        replyToMsgId,
+        replyToSenderName,
+      };
+    },
+
+    async editMessage(chatId: string, messageId: number, newText: string) {
+      await client.invoke(
+        new Api.messages.EditMessage({
+          peer: chatId,
+          id: messageId,
+          message: newText,
+        })
+      );
+      return {
+        id: messageId,
+        senderId: "me",
+        senderName: "You",
+        text: newText,
         timestamp: new Date(),
         isOutgoing: true,
       };

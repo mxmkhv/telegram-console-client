@@ -24,6 +24,7 @@ interface MessageViewProps {
   messageLayout: MessageLayout;
   isGroupChat: boolean;
   chatId: string | null;
+  setSelectedIndex?: (index: number) => void;
   sendReaction: (
     chatId: string,
     messageId: number,
@@ -92,6 +93,7 @@ function MessageViewInner({
   messageLayout,
   isGroupChat,
   chatId,
+  setSelectedIndex,
   sendReaction,
   removeReaction,
 }: MessageViewProps) {
@@ -139,11 +141,21 @@ function MessageViewInner({
     }
   }, [isAtBottom, chatId, dispatch]);
 
-  // Handle 'r' key for reactions and Enter for media panel
+  // Handle 'r' key for reactions, 'R' (Shift+R) for reply, and Enter for media panel
   useInput(
     (input, key) => {
-      // 'r' key for reactions
-      if (input === "r" || input === "R") {
+      // Shift+R for reply (uppercase R)
+      if (input === "R") {
+        const selectedMessage = chatMessages[selectedIndex];
+        if (selectedMessage) {
+          dispatch({ type: "SET_REPLYING_TO", payload: selectedMessage });
+          dispatch({ type: "SET_FOCUSED_PANEL", payload: "input" });
+        }
+        return;
+      }
+
+      // 'r' key for reactions (lowercase only now)
+      if (input === "r") {
         const selectedMessage = chatMessages[selectedIndex];
         if (selectedMessage) {
           if (hasUserReaction(selectedMessage.reactions)) {
@@ -156,9 +168,23 @@ function MessageViewInner({
         return;
       }
 
-      // Existing Enter handling for media panel
+      // Enter handling: reply navigation OR media panel
       if (key.return) {
         const selectedMessage = chatMessages[selectedIndex];
+
+        // If this is a reply message, navigate to original
+        if (selectedMessage?.replyToMsgId && setSelectedIndex) {
+          const originalIndex = chatMessages.findIndex(
+            (m) => m.id === selectedMessage.replyToMsgId
+          );
+          if (originalIndex >= 0) {
+            setSelectedIndex(originalIndex);
+            startMsgFlash(selectedMessage.replyToMsgId, FLASH_CONFIG.messageFlashCount);
+            return;
+          }
+        }
+
+        // Otherwise, open media panel if message has media
         if (selectedMessage?.media) {
           dispatch({
             type: "OPEN_MEDIA_PANEL",
@@ -407,6 +433,11 @@ function MessageViewInner({
           <Text color={senderColor}>{msg.senderName || "Unknown"}</Text>
         )}
 
+        {/* Reply prefix */}
+        {msg.replyToMsgId && (
+          <Text dimColor>↩ {msg.replyToSenderName ?? "Unknown"}</Text>
+        )}
+
         {/* Message content with inline timestamp on last line */}
         {textLines.map((line, lineIndex) => {
           const isLastLine = lineIndex === textLines.length - 1;
@@ -576,6 +607,12 @@ function MessageViewInner({
                             <Text inverse={isSelected} dimColor={!isSelected}>
                               [{formatTime(msg.timestamp)}]{"\u00A0"}
                             </Text>
+                            {/* Reply prefix */}
+                            {msg.replyToMsgId && (
+                              <Text inverse={isSelected} dimColor>
+                                ↩{msg.replyToSenderName ?? "Unknown"}:{"\u00A0"}
+                              </Text>
+                            )}
                             <Text
                               inverse={isSelected}
                               bold
