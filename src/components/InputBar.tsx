@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, memo } from "react";
 import { Box, Text, useInput } from "ink";
 import type { Message } from "../types";
+import { transformEmoticons } from "../utils/emoticonMap";
 
 interface InputBarProps {
   isFocused: boolean;
@@ -80,16 +81,20 @@ function InputBarInner({
       if (key.return) {
         setState((s) => {
           if (s.value.trim() && selectedChatId) {
+            // Transform any trailing emoticon before submitting
+            const { text: transformedText } = transformEmoticons(s.value, s.value.length);
+            const finalText = transformedText.trim();
+
             // Edit mode: call onEdit
             if (editingMessage && onEdit) {
-              if (s.value.trim() !== editingMessage.text) {
-                onEdit(s.value.trim(), selectedChatId, editingMessage.id);
+              if (finalText !== editingMessage.text) {
+                onEdit(finalText, selectedChatId, editingMessage.id);
               }
               onCancelEdit?.();
               return { value: "", cursor: 0 };
             }
             // Normal/Reply mode: call onSubmit
-            onSubmit(s.value.trim(), selectedChatId);
+            onSubmit(finalText, selectedChatId);
             onCancelReply?.();
             return { value: "", cursor: 0 };
           }
@@ -138,10 +143,18 @@ function InputBarInner({
 
       // Insert character at cursor position
       if (input && !key.ctrl && !key.meta) {
-        setState((s) => ({
-          value: s.value.slice(0, s.cursor) + input + s.value.slice(s.cursor),
-          cursor: s.cursor + input.length,
-        }));
+        setState((s) => {
+          const newValue = s.value.slice(0, s.cursor) + input + s.value.slice(s.cursor);
+          const newCursor = s.cursor + input.length;
+
+          // Transform emoticon when space is typed
+          if (input === " ") {
+            const { text, cursorAdjustment } = transformEmoticons(newValue, newCursor);
+            return { value: text, cursor: newCursor + cursorAdjustment };
+          }
+
+          return { value: newValue, cursor: newCursor };
+        });
       }
     },
     { isActive: isFocused }
