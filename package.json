@@ -41,7 +41,10 @@
     "prepublishOnly": "bun run build",
     "release:patch": "bun run scripts/release.ts patch",
     "release:minor": "bun run scripts/release.ts minor",
-    "release:major": "bun run scripts/release.ts major"
+    "release:major": "bun run scripts/release.ts major",
+    "claude-release:patch": "bun run scripts/claude-release.ts patch",
+    "claude-release:minor": "bun run scripts/claude-release.ts minor",
+    "claude-release:major": "bun run scripts/claude-release.ts major"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
