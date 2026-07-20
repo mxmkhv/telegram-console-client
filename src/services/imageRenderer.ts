@@ -1,32 +1,20 @@
 import terminalImage from 'terminal-image';
 import type { MediaAttachment } from '../types/index.js';
+import { stripAnsi } from './ansiViewport.js';
 
 /**
- * Wrapper that forces ANSI block rendering instead of iTerm2/Kitty inline images.
- * The iTerm2 protocol uses OSC escape sequences that don't render through Ink's <Text>.
- * We temporarily unset TERM_PROGRAM during render to trigger the fallback.
+ * Wrapper that forces ANSI half-block rendering instead of native inline-image
+ * protocols (iTerm2, Kitty/Ghostty, Sixel). Those protocols write escape codes
+ * directly to stdout and return an empty string, which Ink's frame renderer then
+ * clobbers — leaving the media panel blank. `preferNativeRender: false` makes
+ * terminal-image skip all protocol detection and emit ANSI blocks, the only mode
+ * that composes with Ink's <Text>.
  */
 async function renderWithAnsiBlocks(
   buffer: Buffer,
   options: { width?: number | string; height?: number | string; preserveAspectRatio?: boolean }
 ): Promise<string> {
-  const originalTermProgram = process.env.TERM_PROGRAM;
-  const originalLcTerminal = process.env.LC_TERMINAL;
-  const originalKonsole = process.env.KONSOLE_VERSION;
-
-  // Temporarily disable terminal graphics detection
-  delete process.env.TERM_PROGRAM;
-  delete process.env.LC_TERMINAL;
-  delete process.env.KONSOLE_VERSION;
-
-  try {
-    return await terminalImage.buffer(buffer, options);
-  } finally {
-    // Restore environment
-    if (originalTermProgram) process.env.TERM_PROGRAM = originalTermProgram;
-    if (originalLcTerminal) process.env.LC_TERMINAL = originalLcTerminal;
-    if (originalKonsole) process.env.KONSOLE_VERSION = originalKonsole;
-  }
+  return terminalImage.buffer(buffer, { ...options, preferNativeRender: false });
 }
 
 interface RenderOptions {
@@ -70,13 +58,6 @@ export function calculatePreviewDimensions(imageWidth: number, imageHeight: numb
   };
 }
 
-// Strip ANSI escape codes to measure actual display width
-function stripAnsi(str: string): string {
-  // Match all ANSI escape sequences including OSC, CSI, etc.
-  // eslint-disable-next-line no-control-regex
-  return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07)/g, '');
-}
-
 export interface PreviewResult {
   image: string;
   width: number;
@@ -104,14 +85,18 @@ export async function renderInlinePreview(buffer: Buffer, width: number, height:
 export async function renderPanelImage(
   buffer: Buffer,
   panelWidth: number,
-  maxHeight?: number
+  maxHeight?: number,
+  zoom = 1
 ): Promise<string> {
-  // Account for border (2 chars) + paddingX (2 chars) = 4 chars overhead
-  const contentWidth = panelWidth - 4;
+  // Account for border (2 chars) + paddingX (2 chars) = 4 chars overhead.
+  // Magnify by `zoom` — the caller slices a viewport-sized window out of the
+  // oversized render (see sliceAnsiViewport) so zoom > 1 can be panned.
+  const contentWidth = Math.round((panelWidth - 4) * zoom);
+  const height = maxHeight != null ? Math.round(maxHeight * zoom) : undefined;
 
   const result = await renderWithAnsiBlocks(buffer, {
     width: contentWidth,
-    height: maxHeight,
+    height,
     preserveAspectRatio: true,
   });
 

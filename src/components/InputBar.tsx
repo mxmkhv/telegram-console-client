@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef, memo } from "react";
-import { Box, Text, useInput } from "ink";
-import type { Message } from "../types";
+import React, { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useInput } from "ink";
+import { Box, Text, useSkin } from "./ui";
+import type { Message, ImageSendResult } from "../types";
 import { transformEmoticons } from "../utils/emoticonMap";
 
 interface InputBarProps {
   isFocused: boolean;
   onSubmit: (text: string, chatId: string) => void;
   onEdit?: (text: string, chatId: string, messageId: number) => void;
+  onSendImage?: (chatId: string) => Promise<ImageSendResult>;
   onStartEdit?: () => void;
   selectedChatId: string | null;
   replyingToMessage?: Message | null;
@@ -25,6 +27,7 @@ function InputBarInner({
   isFocused,
   onSubmit,
   onEdit,
+  onSendImage,
   onStartEdit,
   selectedChatId,
   replyingToMessage,
@@ -35,6 +38,33 @@ function InputBarInner({
   // Single state object prevents race conditions between value and cursor updates
   const [state, setState] = useState<InputState>({ value: "", cursor: 0 });
   const prevChatIdRef = useRef(selectedChatId);
+  const skin = useSkin();
+
+  // Blinking text cursor (ribbon skin only) - focus is no longer shown via
+  // color changes on the caret/rule, so the flashing cursor is the only
+  // active-input cue.
+  const [cursorBlinkOn, setCursorBlinkOn] = useState(true);
+  useEffect(() => {
+    if (!skin.inputRibbon || !isFocused) return;
+    setCursorBlinkOn(true);
+    const id = setInterval(() => setCursorBlinkOn((v) => !v), 500);
+    return () => clearInterval(id);
+  }, [skin.inputRibbon, isFocused]);
+
+  // Transient status line for clipboard-image sends (auto-clears after 3s).
+  const [status, setStatus] = useState<string | null>(null);
+  const statusTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showStatus = useCallback((msg: string) => {
+    setStatus(msg);
+    if (statusTimeout.current) clearTimeout(statusTimeout.current);
+    statusTimeout.current = setTimeout(() => setStatus(null), 3000);
+  }, []);
+  useEffect(
+    () => () => {
+      if (statusTimeout.current) clearTimeout(statusTimeout.current);
+    },
+    []
+  );
 
   // Clear input when chat changes
   useEffect(() => {
@@ -129,6 +159,17 @@ function InputBarInner({
         return;
       }
 
+      // Paste image from clipboard and send it (Ctrl+V)
+      if (key.ctrl && input === "v") {
+        if (selectedChatId && onSendImage) {
+          showStatus("Sending image…");
+          onSendImage(selectedChatId).then((result) => {
+            showStatus(result.ok ? "✓ Image sent" : result.error ?? "Failed to send image");
+          });
+        }
+        return;
+      }
+
       // Home (Ctrl+A)
       if (key.ctrl && input === "a") {
         setState((s) => ({ ...s, cursor: 0 }));
@@ -177,6 +218,27 @@ function InputBarInner({
       ? `↩ Replying to ${replyingToMessage.senderName}...`
       : null;
 
+  const caretColor = skin.inputRibbon ? "cyan" : isFocused ? "cyan" : "white";
+  const cursorInverse = isFocused && (skin.inputRibbon ? cursorBlinkOn : true);
+
+  const inputRow = (
+    <>
+      <Text bold color={caretColor}>{skin.inputRibbon ? skin.glyphs.caret : ">"} </Text>
+      <Box flexGrow={1}>
+        {showPlaceholder ? (
+          <Text dimColor>{placeholder}</Text>
+        ) : (
+          <Text>
+            <Text>{beforeCursor}</Text>
+            <Text inverse={cursorInverse}>{atCursor}</Text>
+            <Text>{afterCursor}</Text>
+          </Text>
+        )}
+      </Box>
+      {status && <Text dimColor> {status}</Text>}
+    </>
+  );
+
   return (
     <Box flexDirection="column" width="100%">
       {/* Mode indicator */}
@@ -185,26 +247,33 @@ function InputBarInner({
           <Text dimColor>{modeIndicator} (Esc to cancel)</Text>
         </Box>
       )}
-      <Box
-        width="100%"
-        minHeight={3}
-        borderStyle="round"
-        borderColor={isFocused ? "cyan" : "blue"}
-        paddingX={1}
-      >
-        <Text bold color={isFocused ? "cyan" : "white"}>{">"} </Text>
-        <Box flexGrow={1}>
-          {showPlaceholder ? (
-            <Text dimColor>{placeholder}</Text>
-          ) : (
-            <Text>
-              <Text>{beforeCursor}</Text>
-              <Text inverse={isFocused}>{atCursor}</Text>
-              <Text>{afterCursor}</Text>
-            </Text>
-          )}
+      {skin.inputRibbon ? (
+        <>
+          {/* Thin full-width rule instead of a bordered box, merging into
+              ShortcutsBar's own rule+text below it. */}
+          <Box
+            width="100%"
+            borderStyle="single"
+            borderBottom={false}
+            borderLeft={false}
+            borderRight={false}
+            borderColor="gray"
+          />
+          <Box width="100%" paddingX={1}>
+            {inputRow}
+          </Box>
+        </>
+      ) : (
+        <Box
+          width="100%"
+          minHeight={3}
+          borderStyle="round"
+          borderColor={isFocused ? "cyan" : "blue"}
+          paddingX={1}
+        >
+          {inputRow}
         </Box>
-      </Box>
+      )}
     </Box>
   );
 }
@@ -216,6 +285,7 @@ export const InputBar = memo(InputBarInner, (prev, next) => {
     prev.selectedChatId === next.selectedChatId &&
     prev.onSubmit === next.onSubmit &&
     prev.onEdit === next.onEdit &&
+    prev.onSendImage === next.onSendImage &&
     prev.onStartEdit === next.onStartEdit &&
     prev.replyingToMessage === next.replyingToMessage &&
     prev.editingMessage === next.editingMessage

@@ -1,4 +1,4 @@
-// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+// Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`MessageView renders empty state when no chat selected 1`] = `
 "╭────────────────────────────────────────────────╮
@@ -59,19 +59,19 @@ exports[`MessageView renders messages when chat is selected 1`] = `
 │ Chat with Alice                                │
 │────────────────────────────────────────────────│
 │ [10:30] Alice: Hello there!                    │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:31] You: Hi Alice!                         │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:32] Alice: How are you doing today?        │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
 │                                                │
 │                                                │
 │                                                │
@@ -86,19 +86,19 @@ exports[`MessageView renders with unfocused state and messages 1`] = `
 │ Chat with Alice                                │
 │────────────────────────────────────────────────│
 │ [10:30] Alice: Hello there!                    │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:31] You: Hi Alice!                         │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:32] Alice: How are you doing today?        │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
 │                                                │
 │                                                │
 │                                                │
@@ -113,19 +113,19 @@ exports[`MessageView renders outgoing message with cyan sender name 1`] = `
 │ Chat with Alice                                │
 │────────────────────────────────────────────────│
 │ [10:30] Alice: Hello there!                    │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:31] You: Hi Alice!                         │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
-│                                                │
 │ [10:32] Alice: How are you doing today?        │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
+│                                                │
 │                                                │
 │                                                │
 │                                                │

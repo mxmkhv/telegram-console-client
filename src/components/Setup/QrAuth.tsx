@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Box, Text, useInput } from "ink";
+import { useInput } from "ink";
+import { Box, Text } from "../ui";
 import qrcode from "qrcode-terminal";
 
 interface QrAuthProps {

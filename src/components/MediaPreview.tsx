@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useMemo } from 'react';
-import { Text, Box } from 'ink';
+import { Text, Box } from './ui';
 import type { Message } from '../types/index.js';
 import { getMediaBuffer } from '../services/mediaCache.js';
 import { renderInlinePreview, calculatePreviewDimensions, type PreviewResult } from '../services/imageRenderer.js';

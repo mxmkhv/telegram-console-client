@@ -1,5 +1,6 @@
 import { memo, useMemo, useState, useCallback, useEffect, type Dispatch } from "react";
-import { Box, Text, useInput } from "ink";
+import { useInput } from "ink";
+import { Box, Text, useSkin } from "./ui";
 import type { Message, MessageLayout } from "../types";
 import { formatMediaMetadata } from "../services/imageRenderer.js";
 import type { AppAction } from "../state/reducer.js";
@@ -9,9 +10,6 @@ import { useFlash } from "../hooks/useFlash.js";
 import { useTelegramService } from "../state/context.js";
 import { FLASH_CONFIG } from "../config/flashConfig.js";
 
-const VISIBLE_LINES = 20;
-const TOTAL_HEIGHT = 24; // Match ChatList height
-
 interface MessageViewProps {
   isFocused: boolean;
   selectedChatTitle: string | null;
@@ -20,6 +18,7 @@ interface MessageViewProps {
   isLoadingOlder?: boolean;
   canLoadOlder?: boolean;
   width: number;
+  height?: number;
   dispatch: Dispatch<AppAction>;
   messageLayout: MessageLayout;
   isGroupChat: boolean;
@@ -31,6 +30,7 @@ interface MessageViewProps {
     emoji: string,
   ) => Promise<boolean>;
   removeReaction: (chatId: string, messageId: number) => Promise<boolean>;
+  isTyping?: boolean;
 }
 
 function formatTime(date: Date): string {
@@ -39,6 +39,42 @@ function formatTime(date: Date): string {
     minute: "2-digit",
     hour12: false,
   });
+}
+
+export function countWrappedLines(line: string, width: number): number {
+  if (width <= 0 || line.length <= width) return 1;
+  const words = line.split(" ");
+  let rows = 1;
+  let col = 0; // characters used on the current row
+  for (const word of words) {
+    if (word.length === 0) {
+      // Empty token = a space char (leading space or a run of spaces); it occupies one column.
+      if (col + 1 <= width) {
+        col += 1;
+      } else {
+        rows++;
+        col = 1;
+      }
+      continue;
+    }
+    if (word.length > width) {
+      // Long word hard-wraps onto its own rows.
+      if (col > 0) rows++;
+      const wordRows = Math.ceil(word.length / width);
+      rows += wordRows - 1;
+      const rem = word.length % width;
+      col = rem === 0 ? width : rem;
+      continue;
+    }
+    const needed = col === 0 ? word.length : col + 1 + word.length;
+    if (needed <= width) {
+      col = needed;
+    } else {
+      rows++;
+      col = word.length;
+    }
+  }
+  return rows;
 }
 
 function formatReactions(reactions: Message["reactions"]): string {
@@ -56,12 +92,21 @@ function hasUserReaction(reactions: Message["reactions"]): boolean {
 }
 
 function getMessageLineCount(msg: Message, _isSelected: boolean, availableWidth: number): number {
-  // Media metadata is now inline with sender, no extra lines needed
   const lines = msg.text.split("\n");
   if (availableWidth <= 0) return lines.length;
+  // The first rendered line carries the "[HH:MM] Sender: " prefix (+ optional reply
+  // prefix, media info) and any reactions suffix; continuation \n-lines are indented
+  // 8 spaces. Include them so the count matches Ink's actual wrapping and the visible
+  // window doesn't over-pack and clip the bottom message.
+  const senderName = msg.isOutgoing ? "You" : msg.senderName;
+  const replyPrefix = msg.replyToMsgId ? `↩${msg.replyToSenderName ?? "Unknown"}: ` : "";
+  const mediaInfo = msg.media ? ` ${formatMediaMetadata(msg.media, msg.id)}` : "";
+  const firstPrefix = `[${formatTime(msg.timestamp)}] ${replyPrefix}${senderName}:${mediaInfo} `;
+  const reactions = formatReactions(msg.reactions);
   let total = 0;
-  for (const line of lines) {
-    total += Math.max(1, Math.ceil(line.length / availableWidth));
+  for (let i = 0; i < lines.length; i++) {
+    const content = i === 0 ? firstPrefix + lines[i] + reactions : "        " + lines[i];
+    total += countWrappedLines(content, availableWidth);
   }
   return total;
 }
@@ -75,7 +120,7 @@ function getBubbleMessageLineCount(msg: Message, isGroupChat: boolean, available
     textLines = lines.length;
   } else {
     for (const line of lines) {
-      textLines += Math.max(1, Math.ceil(line.length / availableWidth));
+      textLines += countWrappedLines(line, availableWidth);
     }
   }
   // name line (if group + not outgoing) + text lines (timestamp is inline on last line)
@@ -104,6 +149,7 @@ function MessageViewInner({
   isLoadingOlder = false,
   canLoadOlder = false,
   width,
+  height = 24,
   dispatch,
   messageLayout,
   isGroupChat,
@@ -111,7 +157,12 @@ function MessageViewInner({
   setSelectedIndex,
   sendReaction,
   removeReaction,
+  isTyping,
 }: MessageViewProps) {
+  const skin = useSkin();
+  // panelDividers skins drop the left/right/outer-top/bottom border, leaving
+  // only the header row + its divider (no outer border rows to subtract).
+  const visibleLines = Math.max(1, height - (skin.panelDividers ? 2 : 4));
   // Reaction picker state
   const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const [reactionPickerIndex, setReactionPickerIndex] = useState(0);
@@ -323,7 +374,8 @@ function MessageViewInner({
   };
 
   // Calculate line count for each message
-  const contentWidth = width - 4; // Account for borders and padding
+  // panelDividers skins have no left/right border columns, only paddingX.
+  const contentWidth = width - (skin.panelDividers ? 2 : 4);
   const messageLineCounts = useMemo(() => {
     return chatMessages.map((msg, index) => {
       const isSelected = index === selectedIndex && isFocused;
@@ -351,7 +403,7 @@ function MessageViewInner({
     }
 
     // Check if all messages fit
-    if (totalLines <= VISIBLE_LINES) {
+    if (totalLines <= visibleLines) {
       return {
         startIndex: 0,
         endIndex: total,
@@ -371,7 +423,7 @@ function MessageViewInner({
     let linesUsed = messageLineCounts[selectedIndex]!;
 
     // Calculate available lines (reserve space for potential indicators)
-    const availableLines = VISIBLE_LINES;
+    const availableLines = visibleLines;
 
     // Check if we're at the last message (no bottom indicator needed)
     const atLastMessage = selectedIndex === total - 1;
@@ -419,7 +471,7 @@ function MessageViewInner({
       showScrollUp: start > 0,
       showScrollDown: end < total,
     };
-  }, [chatMessages.length, selectedIndex, messageLineCounts, totalLines]);
+  }, [chatMessages.length, selectedIndex, messageLineCounts, totalLines, visibleLines]);
 
   // Get visible messages
   const visibleMessages = chatMessages.slice(startIndex, endIndex);
@@ -508,10 +560,9 @@ function MessageViewInner({
     return (
       <Box
         flexDirection="column"
-        borderStyle="round"
-        borderColor={isFocused ? "cyan" : "blue"}
+        {...(skin.panelDividers ? {} : { borderStyle: "round" as const, borderColor: isFocused ? "cyan" : "blue" })}
         width={width}
-        height={TOTAL_HEIGHT}
+        height={height}
         justifyContent="center"
         alignItems="center"
       >
@@ -523,10 +574,9 @@ function MessageViewInner({
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
-      borderColor={isFocused ? "cyan" : "blue"}
+      {...(skin.panelDividers ? {} : { borderStyle: "round" as const, borderColor: isFocused ? "cyan" : "blue" })}
       width={width}
-      height={TOTAL_HEIGHT}
+      height={height}
     >
       <Box
         paddingX={1}
@@ -539,7 +589,8 @@ function MessageViewInner({
         <Text bold color={isFocused ? "cyan" : undefined}>
           {selectedChatTitle}
         </Text>
-        {totalLines > VISIBLE_LINES && (
+        {isTyping && <Text dimColor italic> typing…</Text>}
+        {totalLines > visibleLines && (
           <Text dimColor>
             {" "}
             ({selectedIndex + 1}/{chatMessages.length})
@@ -549,7 +600,7 @@ function MessageViewInner({
       <Box
         flexDirection="column"
         paddingX={1}
-        height={VISIBLE_LINES}
+        height={visibleLines}
         overflowY="hidden"
       >
         {isLoadingOlder && <Text dimColor> Loading older messages...</Text>}
@@ -613,7 +664,7 @@ function MessageViewInner({
               const viewHint =
                 isSelected && msg.media ? " [Press enter to view]" : "";
               return (
-                <Box key={msg.id} flexDirection="column" flexGrow={1}>
+                <Box key={msg.id} flexDirection="column" flexShrink={0}>
                   {lines.map((line, lineIndex) => (
                     <Box key={lineIndex}>
                       <Text wrap="wrap" backgroundColor={flashColor}>

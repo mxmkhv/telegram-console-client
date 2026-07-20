@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { render } from "ink-testing-library";
 import React from "react";
 import { ChatList } from "./ChatList";
+import { SkinContext } from "./ui/SkinContext";
 import type { Chat } from "../types";
 
 const mockChats: Chat[] = [
@@ -76,5 +77,77 @@ describe("ChatList", () => {
       />
     );
     expect(lastFrame()).toMatchSnapshot();
+  });
+
+  it("smaller height shows fewer chat rows", () => {
+    const chats = Array.from({ length: 40 }, (_, i) => ({
+      id: String(i),
+      title: `Chat ${i}`,
+      unreadCount: 0,
+      isGroup: false,
+    }));
+    const { lastFrame } = render(
+      <ChatList chats={chats} selectedChatId={null} onSelectChat={() => {}} selectedIndex={0} isFocused height={12} />,
+    );
+    const frame = lastFrame() ?? "";
+    const rowCount = chats.filter((c) => frame.includes(c.title)).length;
+    // height 12 → LIST_HEIGHT 6 visible rows, far fewer than 40
+    expect(rowCount).toBeLessThanOrEqual(6);
+    expect(rowCount).toBeGreaterThan(0);
+  });
+
+  it("renders the container at the given width", () => {
+    const chats = [{ id: "1", title: "Alpha", unreadCount: 0, isGroup: false }];
+    const wide = render(
+      <ChatList chats={chats} selectedChatId={null} onSelectChat={() => {}} selectedIndex={0} isFocused={false} />
+    ).lastFrame() ?? "";
+    expect(wide.split("\n")[0]!.length).toBe(35); // default width
+
+    const narrowBox = render(
+      <ChatList chats={chats} selectedChatId={null} onSelectChat={() => {}} selectedIndex={0} isFocused={false} width={20} />
+    ).lastFrame() ?? "";
+    expect(narrowBox.split("\n")[0]!.length).toBe(20);
+  });
+
+  it("drops the round border for a right-edge divider under the claudeCode skin (default skin keeps it)", () => {
+    const chats = [{ id: "1", title: "Alpha", unreadCount: 0, isGroup: false }];
+    const defaultFrame =
+      render(
+        <ChatList chats={chats} selectedChatId={null} onSelectChat={() => {}} selectedIndex={0} isFocused={true} />
+      ).lastFrame() ?? "";
+    const claudeCodeFrame =
+      render(
+        <SkinContext.Provider value="claudeCode">
+          <ChatList chats={chats} selectedChatId={null} onSelectChat={() => {}} selectedIndex={0} isFocused={true} />
+        </SkinContext.Provider>,
+      ).lastFrame() ?? "";
+
+    expect(defaultFrame).toContain("╭");
+    expect(claudeCodeFrame).not.toContain("╭");
+    // Still width-35 (the default), just framed by a single right-edge "│" divider instead.
+    expect(claudeCodeFrame.split("\n")[0]!.length).toBe(35);
+    expect(claudeCodeFrame).toContain("│");
+  });
+
+  it("shows a … marker for a chat that is typing", () => {
+    const chats = [
+      { id: "1", title: "Alice", unreadCount: 0, isGroup: false },
+      { id: "2", title: "Bob", unreadCount: 0, isGroup: false },
+    ];
+    const { lastFrame } = render(
+      <ChatList
+        chats={chats}
+        selectedChatId={"1"}
+        onSelectChat={() => {}}
+        selectedIndex={0}
+        isFocused={false}
+        height={24}
+        width={35}
+        typingChats={{ "2": true }}
+      />
+    );
+    const frame = lastFrame() ?? "";
+    expect(frame).toContain("Bob …");
+    expect(frame).not.toContain("Alice …");
   });
 });

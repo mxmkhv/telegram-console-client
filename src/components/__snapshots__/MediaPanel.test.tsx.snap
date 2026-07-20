@@ -1,25 +1,25 @@
-// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+// Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`MediaPanel renders with cyan border when focused 1`] = `
 "╭──────────────────────────────────────╮
 │ Media                                │
 │                                      │
-│ Loading...                           │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│              Loading...              │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
 │                                      │
 │ Photo 100x100 | 1KB                  │
-│ Enter/Esc to close                   │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
+│ Space zoom (1.0×) · Enter/Esc to     │
+│ close                                │
 ╰──────────────────────────────────────╯"
 `;
 
@@ -27,22 +27,22 @@ exports[`MediaPanel renders with blue border when unfocused 1`] = `
 "╭──────────────────────────────────────╮
 │ Media                                │
 │                                      │
-│ Loading...                           │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│              Loading...              │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
 │                                      │
 │ Photo 100x100 | 1KB                  │
-│ Enter/Esc to close                   │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
+│ Space zoom (1.0×) · Enter/Esc to     │
+│ close                                │
 ╰──────────────────────────────────────╯"
 `;
 
@@ -50,21 +50,21 @@ exports[`MediaPanel defaults to focused state 1`] = `
 "╭──────────────────────────────────────╮
 │ Media                                │
 │                                      │
-│ Loading...                           │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│              Loading...              │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
+│                                      │
 │                                      │
 │ Photo 100x100 | 1KB                  │
-│ Enter/Esc to close                   │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
-│                                      │
+│ Space zoom (1.0×) · Enter/Esc to     │
+│ close                                │
 ╰──────────────────────────────────────╯"
 `;

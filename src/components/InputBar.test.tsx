@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { render } from "ink-testing-library";
 import React from "react";
 import { InputBar } from "./InputBar";
+import { SkinContext } from "./ui/SkinContext";
 
 // Emoji constants for testing (matching emoticonMap.ts)
 const SLIGHTLY_SMILING_FACE = "\u{1F642}"; // 🙂
@@ -31,6 +32,28 @@ describe("InputBar", () => {
       <InputBar isFocused={true} onSubmit={mockOnSubmit} selectedChatId={null} />
     );
     expect(lastFrame()).toMatchSnapshot();
+  });
+
+  it("drops the bottom border under the claudeCode skin's ribbon (default skin keeps it)", () => {
+    const defaultFrame =
+      render(
+        <InputBar isFocused={true} onSubmit={mockOnSubmit} selectedChatId="123" />
+      ).lastFrame() ?? "";
+    const claudeCodeFrame =
+      render(
+        <SkinContext.Provider value="claudeCode">
+          <InputBar isFocused={true} onSubmit={mockOnSubmit} selectedChatId="123" />
+        </SkinContext.Provider>,
+      ).lastFrame() ?? "";
+
+    // A closed rounded box has a bottom border line starting with ╰; the
+    // ribbon variant replaces the box with a rule + the skin's caret glyph.
+    expect(defaultFrame).toContain("╰");
+    expect(defaultFrame).not.toContain("❯");
+    const claudeCodeLines = claudeCodeFrame.split("\n");
+    expect(claudeCodeLines[0]).toMatch(/^─+$/);
+    expect(claudeCodeFrame).toContain("❯");
+    expect(claudeCodeFrame).not.toContain("╰");
   });
 
   it("cursor stays on same line after typing first character", async () => {

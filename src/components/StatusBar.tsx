@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useSkin } from "./ui";
 import type { ConnectionState, FocusedPanel } from "../types";
 
 interface StatusBarProps {
@@ -30,6 +30,7 @@ function getStatusText(state: ConnectionState): string {
 }
 
 function StatusBarInner({ connectionState, focusedPanel }: StatusBarProps) {
+  const skin = useSkin();
   const getHints = () => {
     switch (focusedPanel) {
       case "header":
@@ -46,8 +47,21 @@ function StatusBarInner({ connectionState, focusedPanel }: StatusBarProps) {
   };
 
   return (
-    <Box borderStyle="round" paddingX={1} justifyContent="space-between">
-      <Text>
+    <Box
+      {...(skin.panelDividers
+        ? {
+            borderStyle: "single" as const,
+            borderBottom: false,
+            borderLeft: false,
+            borderRight: false,
+            borderTop: true,
+            borderColor: "gray",
+          }
+        : { borderStyle: "round" as const })}
+      paddingX={1}
+      justifyContent="space-between"
+    >
+      <Text wrap="truncate">
         [
         <Text color={getStatusColor(connectionState)}>
           {getStatusText(connectionState)}
@@ -57,7 +71,7 @@ function StatusBarInner({ connectionState, focusedPanel }: StatusBarProps) {
           {focusedPanel.toUpperCase()}
         </Text>
       </Text>
-      <Text dimColor>{getHints()}</Text>
+      <Text dimColor wrap="truncate">{getHints()}</Text>
     </Box>
   );
 }

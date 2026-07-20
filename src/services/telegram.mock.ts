@@ -1,4 +1,4 @@
-import type { TelegramService, ConnectionState, Chat, Message } from "../types";
+import type { TelegramService, ConnectionState, Chat, Message, MediaAttachment } from "../types";
 
 const MOCK_CHATS: Chat[] = [
   { id: "1", title: "Elon Musk", unreadCount: 47, isGroup: false },
@@ -118,13 +118,21 @@ const DRIP_MESSAGES = [
   { chatId: "2", senderId: "2", senderName: "Donald", text: "TREMENDOUS progress on everything. Believe me." },
 ];
 
-export function createMockTelegramService(): TelegramService {
+export function createMockTelegramService(options?: {
+  typingIntervalMs?: number;
+  typingClearMs?: number;
+}): TelegramService {
+  const typingIntervalMs = options?.typingIntervalMs ?? 8000;
+  const typingClearMs = options?.typingClearMs ?? 3000;
   let connectionState: ConnectionState = "disconnected";
   let connectionCallback: ((state: ConnectionState) => void) | null = null;
   const messageCallbacks = new Set<(message: Message, chatId: string) => void>();
   const messages = structuredClone(MOCK_MESSAGES);
   let dripIndex = 0;
   let dripInterval: NodeJS.Timeout | null = null;
+  const typingCallbacks = new Set<(chatId: string, isTyping: boolean) => void>();
+  let typingInterval: NodeJS.Timeout | null = null;
+  let typingClearTimer: NodeJS.Timeout | null = null;
 
   return {
     async connect() {
@@ -154,12 +162,32 @@ export function createMockTelegramService(): TelegramService {
           dripIndex++;
         }
       }, 5000);
+
+      // Scripted typing: emit a typing ping for the first chat, clear after 3s.
+      typingInterval = setInterval(() => {
+        if (typingCallbacks.size === 0) return;
+        const chatId = MOCK_CHATS[0]?.id;
+        if (!chatId) return;
+        typingCallbacks.forEach((cb) => cb(chatId, true));
+        if (typingClearTimer) clearTimeout(typingClearTimer);
+        typingClearTimer = setTimeout(() => {
+          typingCallbacks.forEach((cb) => cb(chatId, false));
+        }, typingClearMs);
+      }, typingIntervalMs);
     },
 
     async disconnect() {
       if (dripInterval) {
         clearInterval(dripInterval);
         dripInterval = null;
+      }
+      if (typingInterval) {
+        clearInterval(typingInterval);
+        typingInterval = null;
+      }
+      if (typingClearTimer) {
+        clearTimeout(typingClearTimer);
+        typingClearTimer = null;
       }
       connectionState = "disconnected";
       connectionCallback?.(connectionState);
@@ -209,6 +237,27 @@ export function createMockTelegramService(): TelegramService {
       return message;
     },
 
+    async sendImage(chatId: string, filePath: string) {
+      const fileName = filePath.split("/").pop() ?? "image.png";
+      // No real Api.Message in mock mode; downloadMedia returns undefined, so
+      // the message list just shows a photo indicator with the file name.
+      const media = { type: "photo", fileName } as MediaAttachment;
+      const message: Message = {
+        id: Date.now(),
+        senderId: "me",
+        senderName: "You",
+        text: "",
+        timestamp: new Date(),
+        isOutgoing: true,
+        media,
+      };
+      if (!messages[chatId]) {
+        messages[chatId] = [];
+      }
+      messages[chatId]!.push(message);
+      return message;
+    },
+
     async editMessage(chatId: string, messageId: number, newText: string) {
       const chatMessages = messages[chatId];
       if (chatMessages) {
@@ -240,6 +289,13 @@ export function createMockTelegramService(): TelegramService {
       messageCallbacks.add(callback);
       return () => {
         messageCallbacks.delete(callback);
+      };
+    },
+
+    onTyping(callback) {
+      typingCallbacks.add(callback);
+      return () => {
+        typingCallbacks.delete(callback);
       };
     },
 

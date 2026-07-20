@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Text } from 'ink';
+import { Text } from './ui';
 import type { MediaAttachment } from '../types/index.js';
 import { formatMediaMetadata } from '../services/imageRenderer.js';
 

@@ -1,5 +1,6 @@
 import React, { useState, memo } from "react";
-import { Box, Text, useInput } from "ink";
+import { useInput } from "ink";
+import { Box, Text } from "./ui";
 import type { LogoutMode } from "../types";
 
 interface LogoutPromptProps {

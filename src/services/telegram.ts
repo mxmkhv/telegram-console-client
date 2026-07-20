@@ -1,6 +1,6 @@
-import { TelegramClient, Api } from "telegram";
+import { TelegramClient, Api, utils } from "telegram";
 import { StringSession } from "telegram/sessions";
-import { NewMessage, NewMessageEvent } from "telegram/events";
+import { NewMessage, NewMessageEvent, Raw } from "telegram/events";
 import type { TelegramService, ConnectionState, Message, MediaAttachment } from "../types";
 
 // Type for sender objects from GramJS (User, Chat, or Channel)
@@ -129,6 +129,15 @@ function extractReactions(msg: Api.Message): Message["reactions"] {
     }));
 }
 
+const TYPING_TIMEOUT_MS = 6000;
+
+// True for any "actively composing" action we surface as generic "typing…".
+// SendMessageCancelAction (an explicit stop) and unknown actions return false.
+function isActiveTypingAction(action: Api.TypeSendMessageAction | undefined): boolean {
+  if (!action) return false;
+  return action.className !== "SendMessageCancelAction";
+}
+
 export interface TelegramServiceOptions {
   apiId: number | string;
   apiHash: string;
@@ -151,6 +160,34 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
   let connectionCallback: ((state: ConnectionState) => void) | null = null;
   const _messageCallbacks = new Set<(message: Message, chatId: string) => void>();
   let eventHandlerAdded = false;
+  const _typingCallbacks = new Set<(chatId: string, isTyping: boolean) => void>();
+  const _typingTimers = new Map<string, NodeJS.Timeout>();
+
+  function emitTyping(chatId: string, isTyping: boolean) {
+    _typingCallbacks.forEach((cb) => cb(chatId, isTyping));
+  }
+
+  function clearTypingTimer(chatId: string) {
+    const existing = _typingTimers.get(chatId);
+    if (existing) {
+      clearTimeout(existing);
+      _typingTimers.delete(chatId);
+    }
+  }
+
+  // Resolve the raw update's peer to the same marked id getChats()/msg.chatId use.
+  function resolveTypingChatId(update: Api.TypeUpdate): string | null {
+    if (update instanceof Api.UpdateUserTyping) {
+      return utils.getPeerId(new Api.PeerUser({ userId: update.userId })).toString();
+    }
+    if (update instanceof Api.UpdateChatUserTyping) {
+      return utils.getPeerId(new Api.PeerChat({ chatId: update.chatId })).toString();
+    }
+    if (update instanceof Api.UpdateChannelUserTyping) {
+      return utils.getPeerId(new Api.PeerChannel({ channelId: update.channelId })).toString();
+    }
+    return null;
+  }
 
   function setConnectionState(state: ConnectionState) {
     connectionState = state;
@@ -188,10 +225,41 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
           },
           new NewMessage({})
         );
+
+        client.addEventHandler((update: Api.TypeUpdate) => {
+          const isTypingUpdate =
+            update instanceof Api.UpdateUserTyping ||
+            update instanceof Api.UpdateChatUserTyping ||
+            update instanceof Api.UpdateChannelUserTyping;
+          if (!isTypingUpdate) return;
+
+          const chatId = resolveTypingChatId(update);
+          if (!chatId) return;
+
+          const action = (update as Api.UpdateUserTyping | Api.UpdateChatUserTyping | Api.UpdateChannelUserTyping).action;
+          if (!isActiveTypingAction(action)) {
+            // explicit cancel: clear immediately
+            clearTypingTimer(chatId);
+            emitTyping(chatId, false);
+            return;
+          }
+
+          emitTyping(chatId, true);
+          clearTypingTimer(chatId);
+          _typingTimers.set(
+            chatId,
+            setTimeout(() => {
+              _typingTimers.delete(chatId);
+              emitTyping(chatId, false);
+            }, TYPING_TIMEOUT_MS),
+          );
+        }, new Raw({}));
       }
     },
 
     async disconnect() {
+      _typingTimers.forEach((timer) => clearTimeout(timer));
+      _typingTimers.clear();
       await client.disconnect();
       setConnectionState("disconnected");
     },
@@ -203,7 +271,10 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
     async getChats() {
       const dialogs = await client.getDialogs({ limit: 100 });
       return dialogs
-        .filter((d) => !d.isChannel)
+        // Keep DMs and groups (regular + supergroups); drop only broadcast
+        // channels. In GramJS, isChannel is true for supergroups too, so
+        // filtering on !isChannel would wrongly hide every supergroup.
+        .filter((d) => d.isUser || d.isGroup)
         .map((d) => ({
           id: d.id?.toString() ?? "",
           title: d.title ?? "Unknown",
@@ -255,6 +326,22 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
       };
     },
 
+    async sendImage(chatId: string, filePath: string) {
+      // GramJS auto-detects images and sends them as photos. The returned
+      // Api.Message carries the uploaded media, so we reuse extractMedia() to
+      // render it exactly like a received photo.
+      const result = await client.sendMessage(chatId, { file: filePath });
+      return {
+        id: result.id,
+        senderId: "me",
+        senderName: "You",
+        text: result.message ?? "",
+        timestamp: new Date(),
+        isOutgoing: true,
+        media: extractMedia(result),
+      };
+    },
+
     async editMessage(chatId: string, messageId: number, newText: string) {
       await client.invoke(
         new Api.messages.EditMessage({
@@ -286,6 +373,13 @@ export function createTelegramService(options: TelegramServiceOptions): Telegram
       _messageCallbacks.add(callback);
       return () => {
         _messageCallbacks.delete(callback);
+      };
+    },
+
+    onTyping(callback) {
+      _typingCallbacks.add(callback);
+      return () => {
+        _typingCallbacks.delete(callback);
       };
     },
 

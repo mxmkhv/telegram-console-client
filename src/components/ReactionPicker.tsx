@@ -1,5 +1,6 @@
 import { memo } from "react";
-import { Box, Text, useInput } from "ink";
+import { useInput } from "ink";
+import { Box, Text } from "./ui";
 
 export const QUICK_EMOJIS = ["👍", "❤️", "🤣", "😮", "😢", "🔥"] as const;
 

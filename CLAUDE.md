@@ -104,6 +104,7 @@ TG_API_HASH       # Telegram API Hash
 TG_SESSION_MODE   # "persistent" | "ephemeral"
 TG_AUTH_METHOD    # "qr" | "phone"
 TG_MESSAGE_LAYOUT # "classic" | "bubble"
+TG_SKIN           # "default" | "claudeCode"
 TG_LOG_LEVEL      # "quiet" | "info" | "verbose"
 ```
 

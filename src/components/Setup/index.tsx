@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "../ui";
 import TextInput from "ink-text-input";
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
@@ -93,6 +93,9 @@ export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
         logLevel: "info",
         authMethod: "qr",
         messageLayout: "classic",
+        uiMode: "full",
+        noColor: false,
+        skin: "default",
       };
 
       // Small delay to show success message

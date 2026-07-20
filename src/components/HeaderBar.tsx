@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useSkin } from "./ui";
 
 interface HeaderBarProps {
   isFocused: boolean;
@@ -7,6 +7,7 @@ interface HeaderBarProps {
 }
 
 function HeaderBarInner({ isFocused, selectedButton }: HeaderBarProps) {
+  const skin = useSkin();
   // TODO: finish bubble layout
   const _settingsStyle = {
     bold: isFocused && selectedButton === "settings",
@@ -22,8 +23,16 @@ function HeaderBarInner({ isFocused, selectedButton }: HeaderBarProps) {
 
   return (
     <Box
-      borderStyle="round"
-      borderColor={isFocused ? "cyan" : "blue"}
+      {...(skin.panelDividers
+        ? {
+            borderStyle: "single" as const,
+            borderTop: false,
+            borderLeft: false,
+            borderRight: false,
+            borderBottom: true,
+            borderColor: "gray",
+          }
+        : { borderStyle: "round" as const, borderColor: isFocused ? "cyan" : "blue" })}
       paddingX={1}
       justifyContent="space-between"
     >

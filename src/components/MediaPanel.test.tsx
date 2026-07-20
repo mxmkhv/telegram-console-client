@@ -11,8 +11,18 @@ mock.module("../services/mediaCache.js", () => ({
 }));
 
 mock.module("../services/imageRenderer.js", () => ({
-  renderPanelImage: async () => "[mock image]",
+  // Return an oversized render that grows with zoom, so panning has room.
+  renderPanelImage: async (_b: Buffer, _w: number, _h: number, zoom = 1) =>
+    Array.from({ length: Math.round(2 * zoom) }, () => "X".repeat(Math.round(10 * zoom))).join("\n"),
   formatMediaMetadata: () => "Photo 100x100 | 1KB",
+}));
+
+// Force the ANSI fallback path deterministically, keeping every other kittyImage
+// export real (so kittyImage.test.ts still exercises the real functions).
+const realKitty = await import("../services/kittyImage.js");
+mock.module("../services/kittyImage.js", () => ({
+  ...realKitty,
+  supportsKittyGraphics: () => false,
 }));
 
 const mockMedia: MediaAttachment = {
@@ -77,5 +87,47 @@ describe("MediaPanel", () => {
     );
     // Default isFocused=true should show cyan
     expect(lastFrame()).toMatchSnapshot();
+  });
+
+  it("cycles zoom on Space and reveals the pan hint when zoomed", async () => {
+    const { lastFrame, stdin } = render(
+      <MediaPanel
+        message={mockMessage}
+        panelWidth={60}
+        panelHeight={20}
+        downloadMedia={mockDownloadMedia}
+        onClose={mockOnClose}
+        isFocused={true}
+      />
+    );
+
+    // Let the async download + render settle.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(lastFrame()).toContain("(1.0×)");
+    expect(lastFrame()).not.toContain("arrows pan"); // no pan at fit
+
+    stdin.write(" "); // Space → next zoom level
+    await new Promise((r) => setTimeout(r, 20));
+    const frame = lastFrame();
+    expect(frame).toContain("(1.5×)");
+    expect(frame).toContain("arrows pan"); // pan hint appears once zoomed
+  });
+
+  it("closes on Escape", async () => {
+    let closed = false;
+    const { stdin } = render(
+      <MediaPanel
+        message={mockMessage}
+        panelWidth={60}
+        panelHeight={20}
+        downloadMedia={mockDownloadMedia}
+        onClose={() => { closed = true; }}
+        isFocused={true}
+      />
+    );
+    await new Promise((r) => setTimeout(r, 20));
+    stdin.write("\x1B"); // Escape
+    await new Promise((r) => setTimeout(r, 20)); // Ink debounces a bare ESC
+    expect(closed).toBe(true);
   });
 });

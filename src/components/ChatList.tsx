@@ -1,16 +1,14 @@
 import { memo, useMemo, useEffect } from "react";
-import { Box, Text } from "ink";
+import { Box, Text, useSkin } from "./ui";
 import type { Chat } from "../types";
 import { useFlash } from "../hooks/useFlash.js";
 import { useTelegramService } from "../state/context.js";
 import { FLASH_CONFIG } from "../config/flashConfig.js";
 
 // Layout constants
-const LIST_HEIGHT = 18; // Number of chat items to show
 const INDICATOR_LINES = 2; // Top and bottom scroll indicators
 const HEADER_LINES = 2; // Header text + border
 const BORDER_LINES = 2; // Round border top + bottom
-const TOTAL_HEIGHT = LIST_HEIGHT + INDICATOR_LINES + HEADER_LINES + BORDER_LINES; // 24
 
 // Memoized row component
 const ChatRow = memo(function ChatRow({
@@ -18,11 +16,13 @@ const ChatRow = memo(function ChatRow({
   isSelected,
   isActive,
   isFlashing,
+  isTyping,
 }: {
   chat: Chat;
   isSelected: boolean;
   isActive: boolean;
   isFlashing: boolean;
+  isTyping: boolean;
 }) {
   const hasUnread = chat.unreadCount > 0;
   const unreadIndicator = hasUnread ? "● " : "  ";
@@ -31,7 +31,7 @@ const ChatRow = memo(function ChatRow({
   const suffix = hasUnread ? ` (${chat.unreadCount})` : "";
 
   return (
-    <Text>
+    <Text wrap="truncate">
       <Text color={hasUnread ? "cyan" : undefined} inverse={isSelected || isFlashing}>
         {unreadIndicator}
       </Text>
@@ -45,6 +45,7 @@ const ChatRow = memo(function ChatRow({
       >
         {title}{suffix}
       </Text>
+      {isTyping && <Text dimColor> …</Text>}
     </Text>
   );
 });
@@ -55,13 +56,21 @@ interface ChatListProps {
   onSelectChat: (chatId: string) => void;
   selectedIndex: number;
   isFocused: boolean;
+  height?: number;
+  width?: number;
+  typingChats?: Record<string, boolean>;
 }
 
-function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, selectedIndex, isFocused }: ChatListProps) {
+function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, selectedIndex, isFocused, height = 24, width = 35, typingChats }: ChatListProps) {
+  const skin = useSkin();
+  // A single right-edge divider (panelDividers skins) doesn't consume any rows,
+  // unlike a full round border's top+bottom border rows.
+  const borderLines = skin.panelDividers ? 0 : BORDER_LINES;
+  const listHeight = Math.max(1, height - (INDICATOR_LINES + HEADER_LINES + borderLines));
   const { visibleChats, visibleStartIndex, itemsAbove, itemsBelow } = useMemo(() => {
     const total = chats.length;
 
-    if (total <= LIST_HEIGHT) {
+    if (total <= listHeight) {
       return {
         visibleChats: chats,
         visibleStartIndex: 0,
@@ -70,9 +79,9 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
       };
     }
 
-    let start = Math.max(0, selectedIndex - Math.floor(LIST_HEIGHT / 2));
-    start = Math.min(start, total - LIST_HEIGHT);
-    const end = start + LIST_HEIGHT;
+    let start = Math.max(0, selectedIndex - Math.floor(listHeight / 2));
+    start = Math.min(start, total - listHeight);
+    const end = start + listHeight;
 
     return {
       visibleChats: chats.slice(start, end),
@@ -80,7 +89,7 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
       itemsAbove: start,
       itemsBelow: total - end,
     };
-  }, [chats, selectedIndex]);
+  }, [chats, selectedIndex, listHeight]);
 
   const { startFlash, stopFlash, isFlashing } = useFlash();
   const telegramService = useTelegramService();
@@ -106,15 +115,23 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
-      borderColor={isFocused ? "cyan" : "blue"}
-      width={35}
-      height={TOTAL_HEIGHT}
+      {...(skin.panelDividers
+        ? {
+            borderStyle: "single" as const,
+            borderTop: false,
+            borderBottom: false,
+            borderLeft: false,
+            borderRight: true,
+            borderColor: "gray",
+          }
+        : { borderStyle: "round" as const, borderColor: isFocused ? "cyan" : "blue" })}
+      width={width}
+      height={height}
     >
       {/* Header */}
       <Box paddingX={1} borderStyle="single" borderBottom borderLeft={false} borderRight={false} borderTop={false}>
         <Text bold color={isFocused ? "cyan" : undefined}>Chats</Text>
-        {chats.length > LIST_HEIGHT && (
+        {chats.length > listHeight && (
           <Text dimColor> ({selectedIndex + 1}/{chats.length})</Text>
         )}
       </Box>
@@ -134,6 +151,7 @@ function ChatListInner({ chats, selectedChatId, onSelectChat: _onSelectChat, sel
               isSelected={isFocused && globalIndex === selectedIndex}
               isActive={chat.id === selectedChatId}
               isFlashing={isFlashing(chat.id)}
+              isTyping={!!typingChats?.[chat.id]}
             />
           );
         })}

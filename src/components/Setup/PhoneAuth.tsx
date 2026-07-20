@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "../ui";
 import TextInput from "ink-text-input";
 
 interface PhoneAuthProps {

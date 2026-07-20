@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { loadConfig, saveConfig, getConfigPath, hasConfig, loadConfigWithEnvOverrides } from "./index";
-import { rmSync, mkdirSync } from "fs";
+import { rmSync, mkdirSync, mkdtempSync, writeFileSync } from "fs";
 import { join } from "path";
+import { tmpdir } from "os";
 
 const TEST_CONFIG_DIR = join(import.meta.dir, "../../.test-config");
 
@@ -26,6 +27,9 @@ describe("Config", () => {
       logLevel: "info" as const,
       authMethod: "qr" as const,
       messageLayout: "classic" as const,
+      uiMode: "full" as const,
+      noColor: false,
+      skin: "default" as const,
     };
 
     saveConfig(config, TEST_CONFIG_DIR);
@@ -68,6 +72,9 @@ describe("Environment Overrides", () => {
       logLevel: "info" as const,
       authMethod: "qr" as const,
       messageLayout: "classic" as const,
+      uiMode: "full" as const,
+      noColor: false,
+      skin: "default" as const,
     };
     saveConfig(config, TEST_CONFIG_DIR);
 
@@ -83,5 +90,86 @@ describe("Environment Overrides", () => {
   it("returns null when no config exists", () => {
     const loaded = loadConfigWithEnvOverrides(TEST_CONFIG_DIR);
     expect(loaded).toBeNull();
+  });
+});
+
+describe("config noColor", () => {
+  const prev = process.env.NO_COLOR;
+  afterEach(() => {
+    if (prev === undefined) delete process.env.NO_COLOR;
+    else process.env.NO_COLOR = prev;
+  });
+
+  function tmpConfigDir(noColor?: boolean): string {
+    const dir = mkdtempSync(join(tmpdir(), "tgc-cfg-"));
+    mkdirSync(dir, { recursive: true });
+    const cfg: Record<string, unknown> = {
+      apiId: 1, apiHash: "h", sessionPersistence: "persistent",
+      logLevel: "info", authMethod: "qr", messageLayout: "classic", uiMode: "full",
+    };
+    if (noColor !== undefined) cfg.noColor = noColor;
+    writeFileSync(join(dir, "config.json"), JSON.stringify(cfg));
+    return dir;
+  }
+
+  it("defaults noColor to false when absent", () => {
+    const dir = tmpConfigDir();
+    expect(loadConfig(dir)!.noColor).toBe(false);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("preserves a persisted noColor=true", () => {
+    const dir = tmpConfigDir(true);
+    delete process.env.NO_COLOR;
+    expect(loadConfigWithEnvOverrides(dir)!.noColor).toBe(true);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("forces noColor=true when NO_COLOR env is set non-empty", () => {
+    const dir = tmpConfigDir(false);
+    process.env.NO_COLOR = "1";
+    expect(loadConfigWithEnvOverrides(dir)!.noColor).toBe(true);
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe("config skin", () => {
+  const prev = process.env.TG_SKIN;
+  afterEach(() => {
+    if (prev === undefined) delete process.env.TG_SKIN;
+    else process.env.TG_SKIN = prev;
+  });
+
+  function tmpConfigDir(skin?: string): string {
+    const dir = mkdtempSync(join(tmpdir(), "tgc-cfg-skin-"));
+    mkdirSync(dir, { recursive: true });
+    const cfg: Record<string, unknown> = {
+      apiId: 1, apiHash: "h", sessionPersistence: "persistent",
+      logLevel: "info", authMethod: "qr", messageLayout: "classic", uiMode: "full",
+      noColor: false,
+    };
+    if (skin !== undefined) cfg.skin = skin;
+    writeFileSync(join(dir, "config.json"), JSON.stringify(cfg));
+    return dir;
+  }
+
+  it("defaults skin to 'default' when absent", () => {
+    const dir = tmpConfigDir();
+    expect(loadConfig(dir)!.skin).toBe("default");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("preserves a persisted skin", () => {
+    const dir = tmpConfigDir("claudeCode");
+    delete process.env.TG_SKIN;
+    expect(loadConfigWithEnvOverrides(dir)!.skin).toBe("claudeCode");
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("overrides skin via TG_SKIN env var", () => {
+    const dir = tmpConfigDir("default");
+    process.env.TG_SKIN = "claudeCode";
+    expect(loadConfigWithEnvOverrides(dir)!.skin).toBe("claudeCode");
+    rmSync(dir, { recursive: true, force: true });
   });
 });

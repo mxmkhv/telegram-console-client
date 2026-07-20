@@ -1,4 +1,4 @@
-import type { Chat, Message, ConnectionState, FocusedPanel, CurrentView, MessageLayout } from "../types";
+import type { Chat, Message, ConnectionState, FocusedPanel, CurrentView, MessageLayout, UiMode, SkinName } from "../types";
 
 export interface InlinePreviewState {
   loading: boolean;
@@ -28,8 +28,12 @@ export interface AppState {
   mediaPanel: MediaPanelState;
   inlinePreviews: Map<number, InlinePreviewState>;
   messageLayout: MessageLayout;
+  uiMode: UiMode;
+  skin: SkinName;
   replyingToMessage: Message | null;
   editingMessage: Message | null;
+  isHidden: boolean;
+  typingChats: Record<string, boolean>;
 }
 
 export type AppAction =
@@ -59,13 +63,17 @@ export type AppAction =
   | { type: "SET_INLINE_PREVIEW_DATA"; payload: { messageId: number; imageData: string } }
   | { type: "SET_INLINE_PREVIEW_ERROR"; payload: { messageId: number; error: string } }
   | { type: "SET_MESSAGE_LAYOUT"; payload: MessageLayout }
+  | { type: "SET_UI_MODE"; payload: UiMode }
+  | { type: "SET_SKIN"; payload: SkinName }
+  | { type: "SET_HIDDEN"; payload: boolean }
   // Reaction actions
   | { type: "ADD_REACTION"; payload: { chatId: string; messageId: number; emoji: string } }
   | { type: "REMOVE_REACTION"; payload: { chatId: string; messageId: number } }
   // Reply/Edit actions
   | { type: "SET_REPLYING_TO"; payload: Message | null }
   | { type: "SET_EDITING_MESSAGE"; payload: Message | null }
-  | { type: "UPDATE_MESSAGE"; payload: { chatId: string; messageId: number; newText: string } };
+  | { type: "UPDATE_MESSAGE"; payload: { chatId: string; messageId: number; newText: string } }
+  | { type: "SET_TYPING"; payload: { chatId: string; isTyping: boolean } };
 
 export const initialState: AppState = {
   connectionState: "disconnected",
@@ -87,8 +95,12 @@ export const initialState: AppState = {
   },
   inlinePreviews: new Map(),
   messageLayout: "classic",
+  uiMode: "full",
+  skin: "default",
   replyingToMessage: null,
   editingMessage: null,
+  isHidden: false,
+  typingChats: {},
 };
 
 export function appReducer(state: AppState, action: AppAction): AppState {
@@ -312,6 +324,15 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case "SET_MESSAGE_LAYOUT":
       return { ...state, messageLayout: action.payload };
 
+    case "SET_UI_MODE":
+      return { ...state, uiMode: action.payload };
+
+    case "SET_SKIN":
+      return { ...state, skin: action.payload };
+
+    case "SET_HIDDEN":
+      return { ...state, isHidden: action.payload };
+
     case "ADD_REACTION": {
       const { chatId, messageId, emoji } = action.payload;
       const messages = state.messages[chatId];
@@ -390,6 +411,17 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         messages: { ...state.messages, [chatId]: updatedMessages },
       };
+    }
+
+    case "SET_TYPING": {
+      const { chatId, isTyping } = action.payload;
+      if (isTyping) {
+        return { ...state, typingChats: { ...state.typingChats, [chatId]: true } };
+      }
+      if (!state.typingChats[chatId]) return state;
+      const next = { ...state.typingChats };
+      delete next[chatId];
+      return { ...state, typingChats: next };
     }
 
     default:
