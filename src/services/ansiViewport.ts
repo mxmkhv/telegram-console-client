@@ -3,7 +3,7 @@
 // imageRenderer is mocked elsewhere.
 
 // Strip ANSI escape codes to measure actual display width.
-export function stripAnsi(str: string): string {
+function stripAnsi(str: string): string {
   // Match all ANSI escape sequences including OSC, CSI, etc.
   // eslint-disable-next-line no-control-regex
   return str.replace(/\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*\x07)/g, '');

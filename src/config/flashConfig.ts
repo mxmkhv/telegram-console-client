@@ -12,5 +12,3 @@ export const FLASH_CONFIG = {
   restartOnNewMessage: true,
   stopOnSelect: true,
 } as const;
-
-export type FlashConfig = typeof FLASH_CONFIG;

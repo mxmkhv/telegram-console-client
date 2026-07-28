@@ -35,8 +35,3 @@ export async function getMediaBuffer(
     pendingDownloads.delete(messageId);
   }
 }
-
-export function clearCache(): void {
-  mediaCache.clear();
-  pendingDownloads.clear();
-}

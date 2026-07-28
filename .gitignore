@@ -34,3 +34,6 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Claude Code skill helper scripts (local tooling, not part of the app)
+.claude/skills/**/*.py

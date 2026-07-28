@@ -1,12 +1,6 @@
 import type { Chat, Message, ConnectionState, FocusedPanel, CurrentView, MessageLayout, UiMode, SkinName } from "../types";
 
-export interface InlinePreviewState {
-  loading: boolean;
-  imageData: string | null;
-  error: string | null;
-}
-
-export interface MediaPanelState {
+interface MediaPanelState {
   isOpen: boolean;
   messageId: number | null;
   loading: boolean;
@@ -26,7 +20,6 @@ export interface AppState {
   showLogoutPrompt: boolean;
   headerSelectedButton: "settings" | "logout";
   mediaPanel: MediaPanelState;
-  inlinePreviews: Map<number, InlinePreviewState>;
   messageLayout: MessageLayout;
   uiMode: UiMode;
   skin: SkinName;
@@ -59,9 +52,6 @@ export type AppAction =
   | { type: "SET_MEDIA_DATA"; payload: string }
   | { type: "SET_MEDIA_ERROR"; payload: string }
   // Inline preview actions
-  | { type: "SET_INLINE_PREVIEW_LOADING"; payload: { messageId: number } }
-  | { type: "SET_INLINE_PREVIEW_DATA"; payload: { messageId: number; imageData: string } }
-  | { type: "SET_INLINE_PREVIEW_ERROR"; payload: { messageId: number; error: string } }
   | { type: "SET_MESSAGE_LAYOUT"; payload: MessageLayout }
   | { type: "SET_UI_MODE"; payload: UiMode }
   | { type: "SET_SKIN"; payload: SkinName }
@@ -93,7 +83,6 @@ export const initialState: AppState = {
     imageData: null,
     error: null,
   },
-  inlinePreviews: new Map(),
   messageLayout: "classic",
   uiMode: "full",
   skin: "default",
@@ -231,7 +220,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, headerSelectedButton: action.payload };
 
     case "RESET_STATE":
-      return { ...initialState, inlinePreviews: new Map() };
+      return { ...initialState };
 
     // Media panel actions
     case "OPEN_MEDIA_PANEL":
@@ -289,37 +278,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
           error: action.payload,
         },
       };
-
-    // Inline preview actions
-    case "SET_INLINE_PREVIEW_LOADING": {
-      const newPreviews = new Map(state.inlinePreviews);
-      newPreviews.set(action.payload.messageId, {
-        loading: true,
-        imageData: null,
-        error: null,
-      });
-      return { ...state, inlinePreviews: newPreviews };
-    }
-
-    case "SET_INLINE_PREVIEW_DATA": {
-      const newPreviews = new Map(state.inlinePreviews);
-      newPreviews.set(action.payload.messageId, {
-        loading: false,
-        imageData: action.payload.imageData,
-        error: null,
-      });
-      return { ...state, inlinePreviews: newPreviews };
-    }
-
-    case "SET_INLINE_PREVIEW_ERROR": {
-      const newPreviews = new Map(state.inlinePreviews);
-      newPreviews.set(action.payload.messageId, {
-        loading: false,
-        imageData: null,
-        error: action.payload.error,
-      });
-      return { ...state, inlinePreviews: newPreviews };
-    }
 
     case "SET_MESSAGE_LAYOUT":
       return { ...state, messageLayout: action.payload };
