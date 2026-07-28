@@ -12,6 +12,7 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +26,10 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
+      # Trusted publishing (OIDC) needs npm >= 11.5.1; Node 20 bundles an older one
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -37,8 +42,6 @@ jobs:
 
       - name: Publish to npm
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create and push tag
         run: |
