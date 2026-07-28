@@ -23,7 +23,7 @@ Mock mode (no API): `bun run src/index.tsx --mock`
 ```
 layers:src/{index:entry+log-suppress,app:orchestration,components:ui,services:business-logic,state:context+reducer,config:persistent,types:definitions}
 state-pattern:{AppStateContext:read-only,AppDispatchContext:dispatch,TelegramServiceContext:telegram-client}
-hooks:{useApp,useAppState,useAppDispatch,useTelegramService}
+hooks:{useApp,useTelegramService}
 types:{FocusedPanel:5-panels,CurrentView:chat|settings,ConnectionState:3-states,TelegramService:interface}
 components:{Box:flexbox-yoga,borderStyle:panel-boundaries,useInput:keyboard,React.memo:structural-aggressive}
 ```

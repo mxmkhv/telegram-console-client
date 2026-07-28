@@ -1,7 +1,7 @@
 import type { Api } from "telegram";
 
-export type LogLevel = "quiet" | "info" | "verbose";
-export type SessionMode = "persistent" | "ephemeral";
+type LogLevel = "quiet" | "info" | "verbose";
+type SessionMode = "persistent" | "ephemeral";
 export type AuthMethod = "qr" | "phone";
 export type MessageLayout = "classic" | "bubble";
 export type UiMode = "full" | "minimal";
@@ -24,7 +24,7 @@ export type FocusedPanel = "header" | "chatList" | "messages" | "input" | "media
 export type CurrentView = "chat" | "settings";
 export type LogoutMode = "session" | "full";
 
-export type MediaType = "photo" | "sticker" | "gif" | "video" | "document" | "voice";
+type MediaType = "photo" | "sticker" | "gif" | "video" | "document" | "voice";
 
 export interface MediaAttachment {
   type: MediaType;
@@ -46,7 +46,7 @@ export interface ImageSendResult {
   error?: string;
 }
 
-export interface MessageReaction {
+interface MessageReaction {
   emoji: string;
   count: number;
   hasUserReacted: boolean;

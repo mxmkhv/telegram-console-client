@@ -12,7 +12,7 @@ import type { AppConfig, MessageLayout, SkinName } from "../types";
 const CONFIG_FILENAME = "config.json";
 const DEFAULT_CONFIG_DIR = join(homedir(), ".config", "telegram-console");
 
-export function getConfigDir(customDir?: string): string {
+function getConfigDir(customDir?: string): string {
   return customDir ?? DEFAULT_CONFIG_DIR;
 }
 
@@ -83,7 +83,7 @@ export function loadConfigWithEnvOverrides(
   };
 }
 
-export function getSessionPath(customDir?: string): string {
+function getSessionPath(customDir?: string): string {
   return join(getConfigDir(customDir), "session");
 }
 
@@ -94,7 +94,7 @@ export function deleteSession(customDir?: string): void {
   }
 }
 
-export function deleteConfig(customDir?: string): void {
+function deleteConfig(customDir?: string): void {
   const path = getConfigPath(customDir);
   if (existsSync(path)) {
     unlinkSync(path);
@@ -119,8 +119,4 @@ export function saveSession(session: string, customDir?: string): void {
   }
   const path = getSessionPath(customDir);
   writeFileSync(path, session);
-}
-
-export function sessionExists(customDir?: string): boolean {
-  return existsSync(getSessionPath(customDir));
 }

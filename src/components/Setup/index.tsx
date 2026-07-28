@@ -171,8 +171,3 @@ export function Setup({ onComplete, preferredAuthMethod }: SetupProps) {
     </Box>
   );
 }
-
-export { Welcome } from "./Welcome";
-export { ApiCredentials } from "./ApiCredentials";
-export { QrAuth } from "./QrAuth";
-export { PhoneAuth } from "./PhoneAuth";

@@ -1,6 +1,5 @@
 import terminalImage from 'terminal-image';
 import type { MediaAttachment } from '../types/index.js';
-import { stripAnsi } from './ansiViewport.js';
 
 /**
  * Wrapper that forces ANSI half-block rendering instead of native inline-image
@@ -15,71 +14,6 @@ async function renderWithAnsiBlocks(
   options: { width?: number | string; height?: number | string; preserveAspectRatio?: boolean }
 ): Promise<string> {
   return terminalImage.buffer(buffer, { ...options, preferNativeRender: false });
-}
-
-interface RenderOptions {
-  width?: number | string;
-  height?: number | string;
-  preserveAspectRatio?: boolean;
-}
-
-export async function renderImageBuffer(
-  buffer: Buffer,
-  options: RenderOptions = {}
-): Promise<string> {
-  return renderWithAnsiBlocks(buffer, {
-    width: options.width ?? '90%',
-    height: options.height,
-    preserveAspectRatio: options.preserveAspectRatio ?? true,
-  });
-}
-
-// Inline preview constraints
-const MAX_PREVIEW_WIDTH = 25;
-const MAX_PREVIEW_HEIGHT = 15;
-
-export function calculatePreviewDimensions(imageWidth: number, imageHeight: number): { width: number; height: number } {
-  const aspectRatio = imageWidth / imageHeight;
-
-  // Try fitting by height first
-  let width = Math.round(MAX_PREVIEW_HEIGHT * aspectRatio);
-  let height = MAX_PREVIEW_HEIGHT;
-
-  // If width exceeds max, fit by width instead
-  if (width > MAX_PREVIEW_WIDTH) {
-    width = MAX_PREVIEW_WIDTH;
-    height = Math.round(MAX_PREVIEW_WIDTH / aspectRatio);
-  }
-
-  // Ensure minimum dimensions
-  return {
-    width: Math.max(5, Math.min(width, MAX_PREVIEW_WIDTH)),
-    height: Math.max(3, Math.min(height, MAX_PREVIEW_HEIGHT)),
-  };
-}
-
-export interface PreviewResult {
-  image: string;
-  width: number;
-  height: number;
-}
-
-export async function renderInlinePreview(buffer: Buffer, width: number, height: number): Promise<PreviewResult> {
-  const result = await renderWithAnsiBlocks(buffer, {
-    width,
-    height,
-    preserveAspectRatio: true,
-  });
-
-  // Trim trailing newlines
-  const image = result.replace(/\n+$/, '');
-
-  // Measure actual dimensions
-  const lines = image.split('\n');
-  const actualHeight = lines.length;
-  const actualWidth = Math.max(...lines.map(line => stripAnsi(line).length));
-
-  return { image, width: actualWidth, height: actualHeight };
 }
 
 export async function renderPanelImage(

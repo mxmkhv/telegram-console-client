@@ -50,22 +50,6 @@ export function useApp() {
   return { state, dispatch, telegramService };
 }
 
-export function useAppState() {
-  const state = useContext(AppStateContext);
-  if (state === null) {
-    throw new Error("useAppState must be used within AppProvider");
-  }
-  return state;
-}
-
-export function useAppDispatch() {
-  const dispatch = useContext(AppDispatchContext);
-  if (dispatch === null) {
-    throw new Error("useAppDispatch must be used within AppProvider");
-  }
-  return dispatch;
-}
-
 export function useTelegramService() {
   return useContext(TelegramServiceContext);
 }

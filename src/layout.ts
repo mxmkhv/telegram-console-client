@@ -1,5 +1,5 @@
 export const NARROW_THRESHOLD = 60;
-export const MIN_MESSAGE_WIDTH = 30;
+const MIN_MESSAGE_WIDTH = 30;
 
 export function isNarrowLayout(terminalWidth: number): boolean {
   return terminalWidth < NARROW_THRESHOLD;
